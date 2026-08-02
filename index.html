@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistem Resit Jenazah - MASJID AL-RASYIDIN</title>
+    
+    <!-- Favicon & PWA Meta Tags -->
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/fypbhZ8v/masjid-arrasyidin.png">
+    <link rel="apple-touch-icon" href="https://i.postimg.cc/fypbhZ8v/masjid-arrasyidin.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Resit Masjid">
+    <meta name="theme-color" content="#065f46">
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Sistem Pengurusan Jenazah MASJID AL-RASYIDIN","short_name":"Resit Masjid","display":"standalone","start_url":".","background_color":"#f3f4f6","theme_color":"#065f46","icons":[{"src":"https://i.postimg.cc/fypbhZ8v/masjid-arrasyidin.png","sizes":"192x192","type":"image/png"},{"src":"https://i.postimg.cc/fypbhZ8v/masjid-arrasyidin.png","sizes":"512x512","type":"image/png"}]}'>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Library html2pdf.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
+        .hidden-section { display: none; }
+        .logo-img-receipt { max-height: 80px; width: auto; display: block; }
+        .pdf-content { padding: 40px; background: white; min-height: 250mm; }
+        
+        /* Responsive PDF container for mobile preview */
+        @media (max-width: 640px) {
+            .pdf-content { padding: 20px; min-height: auto; }
+            .logo-img-receipt { max-height: 60px; }
+        }
+
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.9); display: none;
+            flex-direction: column; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px;
+            border-radius: 50%; border-left-color: #059669; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background-color: white; }
+            .print-container { box-shadow: none !important; border: none !important; margin: 0 !important; padding: 0 !important; width: 100%; }
+            #receipt-view { display: block !important; }
+            .pdf-content { padding: 0 !important; }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner mb-4"></div>
+        <p id="loading-text" class="text-emerald-800 font-bold animate-pulse text-center px-4">Memproses...</p>
+    </div>
+
+    <!-- Halaman Utama (Login / Landing Page) -->
+    <div id="landing-view" class="max-w-md mx-auto bg-white shadow-2xl rounded-xl overflow-hidden mt-4 md:mt-16 border border-gray-100">
+        <div class="bg-emerald-800 p-8 flex flex-col items-center justify-center">
+            <img src="https://lh3.googleusercontent.com/d/1k4H4gSwisdUQbeRaw-X16D36FSYkf8iW" alt="Logo Masjid" class="h-24 md:h-28 mb-4" crossorigin="anonymous">
+            <h1 class="text-xl font-bold text-white tracking-widest uppercase text-center">MASJID AL-RASYIDIN</h1>
+        </div>
+        <div class="p-6 md:p-8 text-center space-y-2">
+            <h2 class="text-lg font-bold text-gray-700 uppercase">Sistem Pengurusan Jenazah</h2>
+            <p class="text-gray-500 text-sm pb-6">Sila pilih menu tindakan anda</p>
+            
+            <div class="space-y-4">
+                <button onclick="startApp()" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg flex items-center justify-center text-sm md:text-base active:scale-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    Isi Borang Pendaftaran
+                </button>
+                <a href="/admin" class="w-full bg-gray-50 text-gray-700 py-4 rounded-xl font-bold hover:bg-gray-200 border-2 border-gray-200 transition shadow-sm flex items-center justify-center text-sm md:text-base active:scale-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Log Masuk Admin
+                </a>
+            </div>
+        </div>
+        <div class="bg-gray-50 p-4 text-center text-[10px] text-gray-400 uppercase tracking-tighter">
+            &copy; 2026 Pengurusan MASJID AL-RASYIDIN.
+        </div>
+    </div>
+
+    <!-- Aplikasi Utama -->
+    <div id="main-app" class="max-w-4xl mx-auto bg-white shadow-2xl rounded-xl overflow-hidden hidden-section print-container">
+        <!-- Header Section -->
+        <div class="bg-emerald-800 text-white p-6 md:p-10 flex flex-col items-center justify-center space-y-2">
+            <h1 class="text-2xl md:text-3xl font-bold tracking-widest uppercase text-center leading-tight">Sistem Pengurusan Jenazah</h1>
+            <p class="text-emerald-100 mt-1 text-xs md:text-sm opacity-90 text-center">MASJID AL-RASYIDIN - Khidmat Ummah, Berkat Bersama</p>
+        </div>
+
+        <div class="p-4 md:p-8">
+            <!-- STEP 1: Borang Input -->
+            <div id="form-view" class="space-y-6">
+                <!-- Butang Kembali ke Login -->
+                <button onclick="backToLogin()" class="text-xs md:text-sm font-semibold text-gray-500 hover:text-emerald-700 flex items-center transition mb-4 no-print active:scale-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Kembali ke Laman Utama
+                </button>
+
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 gap-2">
+                    <h2 class="text-lg md:text-xl font-bold text-gray-700">Borang Maklumat Jenazah</h2>
+                    <span class="bg-emerald-100 text-emerald-700 text-[10px] md:text-xs px-3 py-1.5 rounded-full font-bold uppercase tracking-tighter self-start sm:self-auto">Langkah 1: Input</span>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs md:text-sm font-medium text-gray-600">Nama Simati</label>
+                        <input type="text" id="inputNamaSimati" oninput="updatePreview()" class="w-full mt-1 p-2.5 md:p-2 border rounded-md focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Contoh: Ahmad Bin Ali">
+                    </div>
+                    <div>
+                        <label class="block text-xs md:text-sm font-medium text-gray-600">Nama Waris</label>
+                        <input type="text" id="inputNamaWaris" oninput="updatePreview()" class="w-full mt-1 p-2.5 md:p-2 border rounded-md focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Nama penuh waris">
+                    </div>
+                    <div>
+                        <label class="block text-xs md:text-sm font-medium text-gray-600">Telefon Waris</label>
+                        <input type="tel" id="inputTelWaris" oninput="updatePreview()" class="w-full mt-1 p-2.5 md:p-2 border rounded-md focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="012-XXXXXXX">
+                    </div>
+                    <div>
+                        <label class="block text-xs md:text-sm font-medium text-gray-600">Tarikh Kematian</label>
+                        <input type="date" id="inputTarikh" oninput="updatePreview()" class="w-full mt-1 p-2.5 md:p-2 border rounded-md focus:ring-2 focus:ring-emerald-500 outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs md:text-sm font-medium text-gray-600">No. LOT Kubur</label>
+                        <div class="flex mt-1">
+                            <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-100 text-gray-500 text-sm font-bold">LOT</span>
+                            <input type="number" id="inputLotKubur" oninput="updateLotSuffix(); updatePreview();" class="w-full p-2.5 md:p-2 border border-r-0 focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="77">
+                            <select id="selectJantinaLot" onchange="updateLotSuffix(); updatePreview();" class="px-2 md:px-3 py-2.5 md:py-2 border rounded-r-md focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold bg-gray-50 text-emerald-800 cursor-pointer">
+                                <option value="L">L</option>
+                                <option value="P">P</option>
+                                <option value="K">K</option>
+                            </select>
+                        </div>
+                        <p class="text-[10px] text-gray-500 mt-1 italic">Format: <span id="previewFormatLot" class="font-bold text-emerald-700">LOT __ (L__)</span></p>
+                    </div>
+                    <div>
+                        <label class="block text-xs md:text-sm font-medium text-gray-600">No. Kematian</label>
+                        <input type="text" id="inputNoKematian" oninput="updatePreview()" class="w-full mt-1 p-2.5 md:p-2 border rounded-md focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Auto Jana / Contoh: 78">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs md:text-sm font-medium text-gray-600">Alamat Penuh</label>
+                        <textarea id="inputAlamat" oninput="updatePreview()" rows="2" class="w-full mt-1 p-2.5 md:p-2 border rounded-md focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Alamat rumah waris / simati"></textarea>
+                    </div>
+                </div>
+
+                <!-- Perkara Pembayaran dari Google Sheets -->
+                <div class="bg-gray-50 p-4 rounded-lg border">
+                    <label class="block text-xs md:text-sm font-bold text-gray-700 mb-3">Pilih Perkara Pembayaran</label>
+                    <div id="paymentItemsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        <p class="text-xs text-gray-500 italic flex items-center col-span-3">
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Memuat turun senarai harga dari Database...
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="flex flex-col justify-center bg-emerald-50 p-4 md:p-6 rounded-xl border border-emerald-100">
+                        <p class="text-xs md:text-sm text-emerald-800 italic font-medium leading-relaxed">
+                            <span class="font-bold uppercase tracking-wider mb-2 block">Nota Penting:</span>
+                            ** Resit ini dijana secara digital dan tidak memerlukan tandatangan.<br><br>
+                            ** Resit ini sebagai rujukan awal pihak waris, resit rasmi akan dikeluarkan semula oleh pihak masjid.
+                        </p>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs md:text-sm font-medium text-gray-600">Nama Pegawai</label>
+                            <input type="text" id="inputNamaPegawai" oninput="updatePreview()" class="w-full mt-1 p-2.5 md:p-2 border rounded-md text-sm" placeholder="Nama anda">
+                        </div>
+                        <div>
+                            <label class="block text-xs md:text-sm font-medium text-gray-600">Jawatan</label>
+                            <input type="text" id="inputJawatan" oninput="updatePreview()" class="w-full mt-1 p-2.5 md:p-2 border rounded-md text-sm" placeholder="Contoh: Bendahari Masjid">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Muat Naik Dokumen -->
+                <div class="mt-6 p-4 md:p-6 bg-emerald-50 rounded-xl border border-emerald-100">
+                    <h3 class="text-xs md:text-sm font-bold text-emerald-800 mb-4 flex items-center uppercase tracking-wider">
+                        Muat Naik Dokumen PDF (Lampiran)
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white border-2 border-dashed p-4 rounded-lg hover:border-emerald-500 transition cursor-pointer">
+                            <label class="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2">1. Sijil Izin Penguburan</label>
+                            <input type="file" id="fileIzin" accept="application/pdf" class="w-full text-xs text-gray-500 cursor-pointer">
+                        </div>
+                        <div class="bg-white border-2 border-dashed p-4 rounded-lg hover:border-emerald-500 transition cursor-pointer">
+                            <label class="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2">2. Sijil Daftar Kematian (JPN)</label>
+                            <input type="file" id="fileJPN" accept="application/pdf" class="w-full text-xs text-gray-500 cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-6">
+                    <button onclick="showPreviewMode()" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg flex items-center justify-center text-base md:text-lg active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Lihat Preview Resit
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 2: Paparan Preview Resit -->
+            <div id="receipt-view" class="hidden-section">
+                <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-amber-50 p-4 rounded-lg border border-amber-200 gap-3">
+                    <div class="flex items-center text-amber-800">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="text-xs md:text-sm font-semibold uppercase tracking-tight">Pralihat Dokumen</span>
+                    </div>
+                    <button onclick="showFormMode()" class="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md font-bold text-xs md:text-sm active:scale-95 transition">Kembali Edit</button>
+                </div>
+
+                <div id="pdf-area" class="pdf-content bg-white border shadow-sm">
+                    <div class="flex flex-col sm:flex-row justify-between items-start mb-6 md:mb-8 gap-4">
+                        <div class="flex items-start space-x-3 md:space-x-4">
+                            <img src="https://i.postimg.cc/fypbhZ8v/masjid-arrasyidin.png" alt="Logo" class="logo-img-receipt h-12 md:h-20" crossorigin="anonymous">
+                            <div>
+                                <h3 class="text-lg md:text-xl font-bold text-gray-800 uppercase tracking-tight leading-tight">Resit Rasmi Pembayaran</h3>
+                                <p class="text-xs md:text-sm text-gray-500 mt-1">No. Rujukan: <span id="refNo" class="font-mono font-bold text-emerald-700">-</span></p>
+                            </div>
+                        </div>
+                        <div class="text-left sm:text-right border-l-2 sm:border-l-0 border-emerald-100 pl-3 sm:pl-0">
+                            <p class="font-semibold text-gray-700 text-sm md:text-base">MASJID AL-RASYIDIN</p>
+                            <p class="text-[9px] md:text-[10px] text-gray-500 leading-tight font-medium">Jalan Transkrian, Nibong Tebal,<br>Pulau Pinang, Malaysia<br>Tel: 013-423 9293</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-xs md:text-sm mb-6 border-t border-b py-4 md:py-6 bg-gray-50/50 px-3 md:px-4">
+                        <div class="flex justify-between border-b border-gray-100 pb-1">
+                            <span class="text-gray-500 uppercase font-bold text-[9px] md:text-[10px]">Nama Simati</span>
+                            <span id="prevNamaSimati" class="font-semibold text-gray-800 text-right">-</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-100 pb-1">
+                            <span class="text-gray-500 uppercase font-bold text-[9px] md:text-[10px]">Nama Waris</span>
+                            <span id="prevNamaWaris" class="font-semibold text-gray-800 text-right">-</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-100 pb-1">
+                            <span class="text-gray-500 uppercase font-bold text-[9px] md:text-[10px]">Telefon Waris</span>
+                            <span id="prevTelWaris" class="font-semibold text-gray-800 text-right">-</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-100 pb-1">
+                            <span class="text-gray-500 uppercase font-bold text-[9px] md:text-[10px]">Tarikh Kematian</span>
+                            <span id="prevTarikh" class="font-semibold text-gray-800 text-right">-</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-100 pb-1">
+                            <span class="text-gray-500 uppercase font-bold text-[9px] md:text-[10px]">No. LOT Kubur</span>
+                            <span id="prevLotKubur" class="font-semibold text-emerald-700 text-right">-</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-100 pb-1">
+                            <span class="text-gray-500 uppercase font-bold text-[9px] md:text-[10px]">No. Kematian</span>
+                            <span id="prevNoKematian" class="font-semibold text-gray-800 text-right">-</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-100 pb-1 md:col-span-2">
+                            <span class="text-gray-500 uppercase font-bold text-[9px] md:text-[10px] whitespace-nowrap mr-4">Alamat</span>
+                            <span id="prevAlamat" class="font-semibold text-gray-800 text-right break-words">-</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto w-full mb-8">
+                        <table class="w-full text-left border-collapse min-w-[400px]">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="py-1.5 px-2 md:py-2 md:px-3 text-[9px] md:text-[11px] font-bold text-gray-600 uppercase border-b w-10 md:w-16 text-center">Bil</th>
+                                    <th class="py-1.5 px-2 md:py-2 md:px-3 text-[9px] md:text-[11px] font-bold text-gray-600 uppercase border-b">Perkara yang perlu di bayar</th>
+                                    <th class="py-1.5 px-2 md:py-2 md:px-3 text-[9px] md:text-[11px] font-bold text-gray-600 uppercase border-b text-right w-24 md:w-32">Amaun (RM)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsBody"></tbody>
+                            <tfoot>
+                                <tr class="bg-emerald-50">
+                                    <td colspan="2" class="py-2 px-3 md:py-3 md:px-4 text-right font-bold text-emerald-900 uppercase text-[10px] md:text-xs">Jumlah Keseluruhan Pembayaran</td>
+                                    <td id="totalAmount" class="py-2 px-3 md:py-3 md:px-4 text-right font-bold text-emerald-900 text-sm md:text-base">0.00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div class="mt-8 md:mt-12 flex flex-col md:flex-row justify-between items-end gap-6 md:gap-12">
+                        <div class="text-[9px] md:text-[10px] text-gray-500 italic space-y-1 flex-1 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                            <p>** Resit ini dijana secara digital dan tidak memerlukan tandatangan.</p>
+                            <p>** Resit ini sebagai rujukan awal pihak waris, resit rasmi akan dikeluarkan semula oleh pihak masjid.</p>
+                        </div>
+                        <div class="space-y-1 w-full md:w-1/3 text-left md:text-right">
+                            <p id="prevNamaPegawai" class="font-bold border-b border-gray-300 min-h-[16px] md:min-h-[20px] uppercase text-gray-800 tracking-wide text-xs md:text-base">-</p>
+                            <p id="prevJawatan" class="text-[10px] md:text-sm text-gray-600 font-medium min-h-[16px] md:min-h-[20px]">-</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-12 md:mt-20 text-center border-t pt-4">
+                        <p class="text-[8px] md:text-[9px] text-gray-400 uppercase italic">Resit ini dijana secara digital oleh Sistem Pengurusan MASJID AL-RASYIDIN</p>
+                    </div>
+                </div>
+
+                <!-- Final Action Buttons (Ditukar Susunan dan Paparan) -->
+                <div class="mt-8 md:mt-12 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 border-t pt-6 md:pt-8 no-print">
+                    
+                    <!-- Butang Simpan (Awal-awal nampak) -->
+                    <button id="btnSaveDB" onclick="saveToDatabase()" class="flex-1 bg-blue-600 text-white py-3 md:py-4 rounded-xl font-bold hover:bg-blue-700 transition flex items-center justify-center shadow-lg text-xs md:text-base active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                        Simpan DB
+                    </button>
+                    
+                    <!-- Butang WhatsApp (Awal-awal tersembunyi) -->
+                    <button id="btnSendWaris" onclick="sendToWaris()" class="hidden flex-1 bg-[#25D366] text-white py-3 md:py-4 rounded-xl font-bold hover:bg-green-700 transition flex items-center justify-center shadow-lg text-xs md:text-base active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="h-4 w-4 md:h-5 md:w-5 mr-2" viewBox="0 0 16 16">
+                            <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
+                        </svg>
+                        WhatsApp Waris
+                    </button>
+
+                    <button id="btnDownload" onclick="generatePDF()" class="hidden flex-1 bg-emerald-600 text-white py-3 md:py-4 rounded-xl font-bold hover:bg-emerald-700 transition flex items-center justify-center shadow-lg text-xs md:text-base active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        Muat Turun
+                    </button>
+                    
+                    <!-- Butang Borang Baru -->
+                    <button id="btnNewForm" onclick="resetForm()" class="hidden w-full sm:w-auto flex-1 bg-gray-600 text-white py-3 md:py-4 rounded-xl font-bold hover:bg-gray-700 transition items-center justify-center shadow-lg text-sm md:text-lg flex active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                        Isi Borang Baru
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gray-100 p-4 text-center text-[10px] text-gray-400 uppercase tracking-tighter">
+            Sistem Digital MASJID AL-RASYIDIN &copy; 2026. Semua maklumat adalah sulit dan terpelihara.
+        </div>
+    </div>
+
+    <script>
+        // SILA MASUKKAN URL WEB APP APPS SCRIPT ANDA DI SINI SELEPAS DEPLOY BARU
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUdHB6MaT-V2MxsprnW96JNNXNxdZPqKlPka8t1fTq9NW9DbXSnezmfobeobjIfRxT_g/exec"; 
+
+        // URL CSV DATA GOOGLE SHEETS
+        const PAYMENT_ITEMS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBehO5MSacK0IxmwS_KfOaM2xAsvaIeIN8bXc1Sblfb8chAyV6i9_TGWpF5SRIrdvnd1TnyRdT-5NG/pub?gid=1589225306&single=true&output=csv";
+        
+        // URL CSV UNTUK NO KEMATIAN
+        const RESIT_JENAZAH_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBehO5MSacK0IxmwS_KfOaM2xAsvaIeIN8bXc1Sblfb8chAyV6i9_TGWpF5SRIrdvnd1TnyRdT-5NG/pub?gid=2102459323&single=true&output=csv";
+
+        let selectedItems = [];
+        let savedPdfUrl = ""; // Variable untuk simpan link GDrive PDF
+
+        // Fetch Payment Items on Page Load
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchPaymentItems();
+            fetchLatestSequences();
+        });
+
+        async function fetchPaymentItems() {
+            const container = document.getElementById('paymentItemsContainer');
+            try {
+                const response = await fetch(PAYMENT_ITEMS_CSV_URL);
+                if (!response.ok) throw new Error('Network response error');
+                
+                const csvText = await response.text();
+                const rows = csvText.split(/\r?\n/);
+                
+                container.innerHTML = ''; // Buang teks loading
+
+                // Mula dari baris 1 (skip header pada baris 0)
+                for (let i = 1; i < rows.length; i++) {
+                    if (!rows[i].trim()) continue;
+                    
+                    // Simple CSV Parser untuk bahagikan setiap column
+                    let values = [];
+                    let inQuotes = false;
+                    let currentVal = "";
+                    for (let char of rows[i]) {
+                        if (char === '"') inQuotes = !inQuotes;
+                        else if (char === ',' && !inQuotes) { values.push(currentVal); currentVal = ""; }
+                        else currentVal += char;
+                    }
+                    values.push(currentVal);
+
+                    if (values.length >= 2) {
+                        const perkara = values[0].replace(/^"|"$/g, '').trim();
+                        const rawRmText = values[1].replace(/^"|"$/g, '').trim();
+                        
+                        let rm = 0;
+                        let isPercuma = rawRmText.toLowerCase().includes('percuma');
+                        
+                        if (!isPercuma) {
+                            const rmText = rawRmText.replace(/[^0-9.]/g, '').trim();
+                            rm = parseFloat(rmText);
+                        }
+                        
+                        if (perkara && (isPercuma || !isNaN(rm))) {
+                            const displayPrice = isPercuma ? 'Percuma' : `RM${rm.toFixed(2)}`;
+                            const label = document.createElement('label');
+                            label.className = 'flex items-center space-x-3 bg-white p-3 border rounded-lg cursor-pointer hover:bg-emerald-50 transition';
+                            label.innerHTML = `
+                                <input type="checkbox" value="${perkara}" data-price="${rm}" data-percuma="${isPercuma}" onchange="toggleItem(this)" class="w-5 h-5 md:w-4 md:h-4 text-emerald-600 rounded">
+                                <span class="text-sm font-medium text-gray-700">${perkara} (${displayPrice})</span>
+                            `;
+                            container.appendChild(label);
+                        }
+                    }
+                }
+                
+                // Jika tiada data selepas dibaca
+                if (container.innerHTML === '') {
+                    container.innerHTML = '<p class="text-xs text-red-500 col-span-3">Tiada rekod bayaran dijumpai.</p>';
+                }
+                
+            } catch (error) {
+                console.error("Ralat muat turun harga:", error);
+                container.innerHTML = '<p class="text-xs text-red-500 col-span-3">Gagal memuat turun senarai. Sila semak pautan internet anda.</p>';
+            }
+        }
+
+        async function fetchLatestSequences() {
+            const inputFieldKematian = document.getElementById('inputNoKematian');
+            const refNoElement = document.getElementById('refNo');
+            
+            inputFieldKematian.placeholder = "Memuat turun...";
+            refNoElement.innerText = "Memuat turun...";
+            
+            try {
+                const response = await fetch(RESIT_JENAZAH_CSV_URL);
+                if (!response.ok) throw new Error('Network response error');
+                
+                const csvText = await response.text();
+                const rows = csvText.split(/\r?\n/);
+                
+                let maxNoKematian = 0;
+                let maxRefSeq = 0;
+                const currentYear = new Date().getFullYear();
+                const refPrefix = `MJR-${currentYear}-`;
+
+                for (let i = 1; i < rows.length; i++) {
+                    if (!rows[i].trim()) continue;
+                    
+                    let values = [];
+                    let inQuotes = false;
+                    let currentVal = "";
+                    for (let char of rows[i]) {
+                        if (char === '"') inQuotes = !inQuotes;
+                        else if (char === ',' && !inQuotes) { values.push(currentVal); currentVal = ""; }
+                        else currentVal += char;
+                    }
+                    values.push(currentVal);
+
+                    // 1. Semak No Rujukan (Column B / Index 1)
+                    if (values.length > 1) {
+                        const noRujukanStr = values[1].replace(/^"|"$/g, '').trim();
+                        // Hanya semak rujukan untuk tahun semasa
+                        if (noRujukanStr.startsWith(refPrefix)) {
+                            const seqStr = noRujukanStr.replace(refPrefix, '');
+                            const seqNum = parseInt(seqStr, 10);
+                            if (!isNaN(seqNum) && seqNum > maxRefSeq) {
+                                maxRefSeq = seqNum;
+                            }
+                        }
+                    }
+
+                    // 2. Semak No Kematian (Column I / Index 8)
+                    if (values.length > 8) {
+                        const noKematianStr = values[8].replace(/^"|"$/g, '').trim();
+                        const num = parseInt(noKematianStr.replace(/[^0-9]/g, ''), 10);
+                        if (!isNaN(num) && num > maxNoKematian) {
+                            maxNoKematian = num;
+                        }
+                    }
+                }
+                
+                // Set No Kematian baharu (+1)
+                inputFieldKematian.value = maxNoKematian > 0 ? maxNoKematian + 1 : 1;
+                
+                // Set No Rujukan baharu (+1 dan format kepada 4 digit)
+                const nextRefSeq = maxRefSeq + 1;
+                const formattedSeq = nextRefSeq.toString().padStart(4, '0');
+                refNoElement.innerText = `${refPrefix}${formattedSeq}`;
+                
+                updatePreview(); 
+                
+            } catch (error) {
+                console.error("Ralat muat turun Sequence:", error);
+                inputFieldKematian.placeholder = "Gagal memuat turun. Sila isi manual.";
+                refNoElement.innerText = `MJR-${new Date().getFullYear()}-RALAT`;
+            }
+        }
+
+        function showPreviewMode() {
+            updatePreview(); renderTable();
+            document.getElementById('form-view').classList.add('hidden-section');
+            document.getElementById('receipt-view').classList.remove('hidden-section');
+            window.scrollTo(0, 0);
+        }
+        function showFormMode() {
+            document.getElementById('receipt-view').classList.add('hidden-section');
+            document.getElementById('form-view').classList.remove('hidden-section');
+            window.scrollTo(0, 0);
+        }
+
+        // Fungsi Masuk dari Laman Utama ke Borang
+        function startApp() {
+            document.getElementById('landing-view').classList.add('hidden-section');
+            document.getElementById('main-app').classList.remove('hidden-section');
+            showFormMode();
+        }
+
+        // Fungsi Kembali ke Laman Utama / Login
+        function backToLogin() {
+            document.getElementById('main-app').classList.add('hidden-section');
+            document.getElementById('landing-view').classList.remove('hidden-section');
+        }
+
+        function toggleItem(checkbox) {
+            const isPercuma = checkbox.getAttribute('data-percuma') === 'true';
+            const item = { 
+                name: checkbox.value, 
+                price: parseFloat(checkbox.getAttribute('data-price')),
+                isPercuma: isPercuma
+            };
+            if (checkbox.checked) { selectedItems.push(item); } 
+            else { selectedItems = selectedItems.filter(i => i.name !== item.name); }
+        }
+
+        function renderTable() {
+            const body = document.getElementById('itemsBody');
+            body.innerHTML = ''; let total = 0;
+            
+            if (selectedItems.length === 0) {
+                body.innerHTML = `<tr><td colspan="3" class="py-4 px-2 text-center text-gray-400 italic text-xs">Tiada item dipilih.</td></tr>`;
+            } else {
+                selectedItems.forEach((item, index) => {
+                    total += item.price;
+                    const displayPrice = item.isPercuma ? 'Percuma' : item.price.toFixed(2);
+                    body.innerHTML += `<tr class="border-b"><td class="py-1 px-2 md:py-1.5 md:px-3 text-[9px] md:text-xs text-gray-500 text-center">${index + 1}</td><td class="py-1 px-2 md:py-1.5 md:px-3 text-[9px] md:text-xs font-semibold text-gray-800">${item.name}</td><td class="py-1 px-2 md:py-1.5 md:px-3 text-[9px] md:text-xs text-right font-mono font-bold">${displayPrice}</td></tr>`;
+                });
+            }
+            document.getElementById('totalAmount').innerText = total.toFixed(2);
+        }
+
+        function updateLotSuffix() {
+            const lotNum = document.getElementById('inputLotKubur').value;
+            const jenis = document.getElementById('selectJantinaLot').value;
+            const display = lotNum ? `LOT ${lotNum} (${jenis}${lotNum})` : 'LOT __ (L__)';
+            document.getElementById('previewFormatLot').innerText = display;
+        }
+
+        function updatePreview() {
+            const fields = [
+                { input: 'inputNamaSimati', output: 'prevNamaSimati' },
+                { input: 'inputNamaWaris', output: 'prevNamaWaris' },
+                { input: 'inputTelWaris', output: 'prevTelWaris' },
+                { input: 'inputAlamat', output: 'prevAlamat' },
+                { input: 'inputTarikh', output: 'prevTarikh' },
+                { input: 'inputNoKematian', output: 'prevNoKematian' },
+                { input: 'inputNamaPegawai', output: 'prevNamaPegawai' },
+                { input: 'inputJawatan', output: 'prevJawatan' }
+            ];
+            fields.forEach(f => {
+                const val = document.getElementById(f.input).value;
+                document.getElementById(f.output).innerText = val ? (f.prefix ? f.prefix + val : val) : '-';
+            });
+
+            // Logik khas untuk No. LOT Kubur
+            const lotNum = document.getElementById('inputLotKubur').value;
+            const jenis = document.getElementById('selectJantinaLot').value;
+            document.getElementById('prevLotKubur').innerText = lotNum ? `LOT ${lotNum} (${jenis}${lotNum})` : '-';
+        }
+
+        // Fungsi Convert Fail kepada Base64 string
+        function getBase64(file) {
+            return new Promise((resolve, reject) => {
+                if (!file) { resolve(null); return; }
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // FUNGSI SIMPAN KE GOOGLE SHEETS & GOOGLE DRIVE
+        async function saveToDatabase() {
+            if (!APPS_SCRIPT_URL) {
+                alert("Ralat: URL Google Apps Script belum dikonfigurasikan di dalam kod.");
+                return;
+            }
+
+            const loading = document.getElementById('loading-overlay');
+            const loadingText = document.getElementById('loading-text');
+            loading.style.display = 'flex';
+            loadingText.innerText = "Sila tunggu... Sedang memproses dokumen & lampiran.";
+
+            try {
+                // 1. Dapatkan base64 fail lampiran
+                const fileIzin = document.getElementById('fileIzin').files[0];
+                const fileJPN = document.getElementById('fileJPN').files[0];
+                const izinBase64 = await getBase64(fileIzin);
+                const jpnBase64 = await getBase64(fileJPN);
+
+                // 2. Jana PDF Resit secara automatik tanpa muat turun
+                const element = document.getElementById('pdf-area');
+                const opt = {
+                    margin: [10, 10, 10, 10],
+                    filename: `temp.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                // Hasilkan Base64 bagi Resit
+                loadingText.innerText = "Menjana PDF Resit untuk database...";
+                await new Promise(r => setTimeout(r, 500)); // Beri masa UI refresh
+                const pdfBase64Data = await html2pdf().set(opt).from(element).toPdf().get('pdf').then(function(pdf) {
+                    return pdf.output('datauristring').split(',')[1];
+                });
+
+                // 3. Bina Payload
+                loadingText.innerText = "Menghantar dan menyimpan rekod ke Database...";
+                
+                const lotNum = document.getElementById('inputLotKubur').value;
+                const jenis = document.getElementById('selectJantinaLot').value;
+                const finalLot = lotNum ? `LOT ${lotNum} (${jenis}${lotNum})` : '';
+
+                const payload = {
+                    refNo: document.getElementById('refNo').innerText,
+                    namaSimati: document.getElementById('inputNamaSimati').value,
+                    namaWaris: document.getElementById('inputNamaWaris').value,
+                    telWaris: document.getElementById('inputTelWaris').value,
+                    alamat: document.getElementById('inputAlamat').value,
+                    tarikhKematian: document.getElementById('inputTarikh').value,
+                    lotKubur: finalLot,
+                    noKematian: document.getElementById('inputNoKematian').value,
+                    items: selectedItems.map(i => i.name).join(", "),
+                    total: document.getElementById('totalAmount').innerText,
+                    pegawai: document.getElementById('inputNamaPegawai').value,
+                    jawatan: document.getElementById('inputJawatan').value,
+                    resitBase64: pdfBase64Data,
+                    izinBase64: izinBase64,
+                    jpnBase64: jpnBase64
+                };
+
+                // 4. Hantar ke Google Apps Script dan tunggu respon
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const resultData = await response.json();
+                
+                if (resultData.result === "success") {
+                    // Dapatkan link Drive dari database
+                    savedPdfUrl = resultData.pdfUrl || ""; 
+                    alert("Maklumat dan PDF berjaya di muat naik & disimpan ke Database!");
+                    
+                    // Tukar paparan butang selepas berjaya simpan
+                    document.getElementById('btnSaveDB').classList.add('hidden');
+                    document.getElementById('btnSendWaris').classList.remove('hidden');
+                    document.getElementById('btnDownload').classList.remove('hidden');
+                    document.getElementById('btnNewForm').classList.remove('hidden');
+                } else {
+                    throw new Error(resultData.error || "Ralat Pelayan");
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert("Gagal menyimpan data. Ralat: " + error.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // FUNGSI HANTAR LINK PDF G-DRIVE KE WHATSAPP (LEBIH PANTAS)
+        function sendToWaris() {
+            const telWaris = document.getElementById('inputTelWaris').value;
+            const namaSimati = document.getElementById('inputNamaSimati').value || 'Resit';
+            
+            if (!telWaris) {
+                alert("Sila masukkan No Telefon Waris di dalam borang terlebih dahulu.");
+                return;
+            }
+            
+            if (!savedPdfUrl) {
+                alert("Sila tunggu sehingga resit siap disimpan dalam database.");
+                return;
+            }
+
+            const shareText = `Salam. Berikut adalah pautan (link) bagi Resit Pengurusan Jenazah MASJID AL-RASYIDIN untuk Allahyarham/Allahyarhamah ${namaSimati}.\n\nPautan Resit Rasmi: ${savedPdfUrl}`;
+
+            let phone = telWaris.replace(/\D/g, ''); // Buang dash dsb.
+            if (phone.startsWith('0')) phone = '6' + phone; // Tambah kod negara 60 untuk M'sia
+            
+            const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(shareText)}`;
+            
+            // Buka terus WhatsApp secara rasmi dengan ayat yang telah siap diisi
+            window.open(waUrl, '_blank');
+        }
+
+        function generatePDF() {
+            const loading = document.getElementById('loading-overlay');
+            const element = document.getElementById('pdf-area');
+            const namaSimati = document.getElementById('inputNamaSimati').value || 'Resit';
+            
+            loading.style.display = 'flex';
+            document.getElementById('loading-text').innerText = "Menjana PDF... Sila tunggu sebentar.";
+
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: `Resit_Jenazah_${namaSimati.replace(/\s+/g, '_')}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, allowTaint: true, scrollY: 0 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            setTimeout(() => {
+                html2pdf().set(opt).from(element).save().then(() => {
+                    loading.style.display = 'none';
+                }).catch((error) => {
+                    console.error("PDF Error:", error);
+                    alert("Berlaku ralat ketika memuat turun PDF.");
+                    loading.style.display = 'none';
+                });
+            }, 800);
+        }
+
+        // FUNGSI UNTUK RESET BORANG KEPADA KOSONG
+        function resetForm() {
+            // Kosongkan semua input teks & tarikh
+            const inputs = ['inputNamaSimati', 'inputNamaWaris', 'inputTelWaris', 'inputAlamat', 'inputTarikh', 'inputLotKubur', 'inputNoKematian', 'inputNamaPegawai', 'inputJawatan'];
+            inputs.forEach(id => document.getElementById(id).value = '');
+            
+            // Dapatkan nombor kematian & No Rujukan yang baru setiap kali reset borang
+            fetchLatestSequences();
+            
+            // Reset dropdown Jantina & text panduan LOT
+            document.getElementById('selectJantinaLot').value = 'L';
+            updateLotSuffix();
+            
+            // Kosongkan input fail PDF
+            document.getElementById('fileIzin').value = '';
+            document.getElementById('fileJPN').value = '';
+            
+            // Buang tanda (uncheck) semua kotak pilihan (checkbox)
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            selectedItems = [];
+            savedPdfUrl = ""; // Reset URL GDrive
+            renderTable(); // Kemas kini jadual supaya kosong
+            
+            // Susun semula butang di paparan Preview
+            document.getElementById('btnSaveDB').classList.remove('hidden');
+            document.getElementById('btnSendWaris').classList.add('hidden');
+            document.getElementById('btnDownload').classList.add('hidden');
+            document.getElementById('btnNewForm').classList.add('hidden');
+            
+            // Kembali ke halaman Borang
+            showFormMode();
+            
+            // Beri notifikasi kecil
+            console.log("Borang telah dikosongkan untuk pendaftaran baharu.");
+        }
+    </script>
+</body>
+</html>
