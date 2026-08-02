@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1a5d2e">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Sistem Carian Interaktif Tanah Perkuburan Islam">
+    
+    <title>eMaqbarah - Peta Kubur</title>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            overscroll-behavior-y: none;
+        }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .scrolling-touch { -webkit-overflow-scrolling: touch; }
+
+        /* Highlight Animation matching the image (Green Glow) */
+        @keyframes glowGreen {
+            0% { box-shadow: 0 0 5px 2px rgba(34, 197, 94, 0.5); transform: scale(1); }
+            50% { box-shadow: 0 0 15px 6px rgba(34, 197, 94, 0.7); transform: scale(1.1); z-index: 20; }
+            100% { box-shadow: 0 0 5px 2px rgba(34, 197, 94, 0.5); transform: scale(1); }
+        }
+        
+        .grave-slot {
+            transition: all 0.2s ease;
+        }
+        
+        .grave-slot:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        /* The specific selected state matching the image */
+        .grave-highlighted {
+            background-color: #22c55e !important; /* Green */
+            border: 3px solid #16a34a !important;
+            color: white !important;
+            animation: glowGreen 1.5s infinite;
+            z-index: 30;
+        }
+    </style>
+</head>
+<body class="min-h-[100dvh] text-gray-800 flex flex-col overflow-hidden">
+
+    <!-- TOP NAVBAR (Matching the dark green theme) -->
+    <nav class="bg-[#1a5d2e] text-white shrink-0 z-30 shadow-md">
+        <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-14 sm:h-16">
+                <!-- Logo & Links -->
+                <div class="flex items-center gap-8">
+                    <div class="flex items-center gap-3">
+                        <img src="https://i.postimg.cc/fypbhZ8v/masjid-arrasyidin.png" alt="Logo Masjid" class="h-10 sm:h-11 w-auto object-contain bg-white rounded-full p-0.5 border border-white/20 shadow-sm" onerror="this.style.display='none'">
+                        <div class="flex flex-col justify-center">
+                            <span class="font-serif font-bold text-xl sm:text-2xl tracking-wide leading-none">eMaqbarah</span>
+                            <span class="text-[10px] sm:text-xs font-semibold text-green-100 tracking-wider mt-1 uppercase">Masjid Al-Rasyidin</span>
+                        </div>
+                    </div>
+                    
+                    <div class="hidden md:flex space-x-8 text-sm font-semibold tracking-wide">
+                        <a href="#" class="border-b-2 border-white text-white py-5">PETA KUBUR</a>
+                        <a href="#" class="text-white/80 hover:text-white py-5 transition-colors">CARIAN</a>
+                        <a href="#" class="text-white/80 hover:text-white py-5 transition-colors">DIREKTORI</a>
+                        <a href="#" class="text-white/80 hover:text-white py-5 transition-colors">INFO</a>
+                    </div>
+                </div>
+
+                <!-- Admin Button -->
+                <div class="flex items-center">
+                    <button class="flex items-center gap-2 border border-white/40 bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-full text-sm font-medium transition-colors">
+                        Admin 
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- SEARCH & FILTER BAR -->
+    <div class="bg-white border-b border-gray-200 shrink-0 z-20">
+        <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+            <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
+                
+                <!-- Search Input Group -->
+                <div class="flex w-full sm:flex-1 relative">
+                    <div class="relative w-full">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                        <input type="text" id="searchInput" onkeyup="handleSearch()" autocomplete="off" class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-l-lg focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="Cari nama si mati...">
+                        
+                        <!-- Search Suggestions Dropdown -->
+                        <div id="searchSuggestions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 max-h-60 overflow-y-auto z-50"></div>
+                    </div>
+                    <button class="bg-[#16a34a] hover:bg-green-700 text-white font-medium px-6 py-2.5 rounded-r-lg transition-colors border border-[#16a34a]">
+                        Cari
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="flex w-full sm:w-auto gap-3">
+                    <select class="block w-full sm:w-40 pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-lg text-gray-700">
+                        <option>Semua Blok</option>
+                        <option>Blok A</option>
+                    </select>
+                    <select class="block w-full sm:w-40 pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-lg text-gray-700">
+                        <option>Semua Status</option>
+                        <option>Kosong</option>
+                        <option>Digunakan</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN GRID AREA -->
+    <main class="flex-1 overflow-hidden relative bg-white m-2 sm:m-4 rounded-xl shadow-sm border border-gray-200">
+        <div id="mapContainer" class="w-full h-full overflow-auto p-4 sm:p-6 custom-scrollbar scrolling-touch overscroll-contain">
+            <div class="min-w-max mx-auto space-y-8">
+                
+                <!-- ADULT SECTION -->
+                <div>
+                    <!-- Header Title like the image -->
+                    <div class="flex items-center gap-2 mb-3">
+                        <h2 class="text-lg font-bold text-gray-800 tracking-wide">BLOK A</h2>
+                        <span class="text-gray-300">|</span>
+                        <span class="text-gray-800 font-bold">KESELURUHAN</span>
+                    </div>
+
+                    <div id="adultGridContainer" class="border border-gray-200 rounded-lg p-3 bg-gray-50/50">
+                        <!-- Rendered by JS using exact CSS Grid layout -->
+                    </div>
+                </div>
+
+                <!-- CHILD SECTION -->
+                <div>
+                    <h3 class="text-[#1a5d2e] font-bold text-sm mb-3 uppercase tracking-wide">Kawasan Kanak-Kanak (Bahagian Bawah Kiri)</h3>
+                    <div id="childGridContainer" class="flex flex-wrap gap-2">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- LEGEND / PETUNJUK -->
+                <div class="mt-8 border border-gray-200 rounded-xl p-4 bg-white">
+                    <h4 class="text-xs font-bold text-gray-800 mb-3 uppercase">Petunjuk</h4>
+                    <div class="flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-gray-700">
+                        <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#cbe2fa] border border-[#a2c8f0]"></div> Lelaki</span>
+                        <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#ffc8db] border border-[#f0a6c2]"></div> Perempuan</span>
+                        <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#ffe180] border border-[#f0c862]"></div> Kanak-kanak</span>
+                        <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#22c55e] border border-[#16a34a]"></div> Dipilih / Cari</span>
+                        <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-white border border-gray-300"></div> Kosong</span>
+                        <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#e2e8f0] border border-gray-300"></div> Telah Digunakan</span>
+                        <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#ffcc00] border border-[#e6b800]"></div> Tempahan</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-gray-200 shrink-0 z-20 shadow-inner">
+        <div class="max-w-[1400px] mx-auto px-4 py-4 text-center">
+            <p class="text-sm text-gray-500 font-medium">&copy; 2026 Pengurusan MASJID AL-RASYIDIN.</p>
+        </div>
+    </footer>
+
+    <!-- MODAL (Unchanged logic, slightly adjusted colors) -->
+    <div id="infoModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-gray-900 bg-opacity-60 backdrop-blur-sm transition-opacity" onclick="closeModal()">
+        <div class="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh] animate-slide-up sm:animate-none" onclick="event.stopPropagation()">
+            <div class="bg-[#1a5d2e] px-5 py-4 flex justify-between items-center text-white shrink-0">
+                <h3 class="text-lg font-bold tracking-wide">Maklumat Pusara</h3>
+                <button onclick="closeModal()" class="p-1 hover:bg-white/20 rounded-full transition-colors">
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div id="modalBody" class="p-6 flex-1 overflow-y-auto scrolling-touch custom-scrollbar"></div>
+            <div class="bg-gray-50 px-5 py-4 border-t border-gray-200 shrink-0 mb-safe">
+                <button onclick="closeModal()" class="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-lg transition-colors">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
+        .mb-safe { margin-bottom: env(safe-area-inset-bottom); }
+    </style>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        const ROW_COUNT_ADULT = 3; // Kurangkan ke 3 untuk paparan demo lebih kemas
+        const COL_COUNT_ADULT = 19; 
+        const ROW_COUNT_CHILD = 1;
+        const COL_COUNT_CHILD = 10;
+
+        // --- MOCK DATABASE ---
+        const generateMockData = () => {
+            const positions = [];
+            const deceasedRecords = [
+                { id: 101, name: "Ahmad bin Abdullah", dateOfDeath: "2023-05-15", age: 65, gender: 'lelaki', notes: "Meninggal kerana sakit tua." },
+                { id: 102, name: "Fatimah binti Hassan", dateOfDeath: "2023-06-20", age: 72, gender: 'perempuan', notes: "" },
+                { id: 103, name: "Mohd Ali bin Abu", dateOfDeath: "2024-01-10", age: 55, gender: 'lelaki', notes: "Kemalangan" },
+            ];
+
+            let recordIndex = 0;
+
+            for (let r = 1; r <= ROW_COUNT_ADULT; r++) {
+                for (let c = 1; c <= COL_COUNT_ADULT; c++) {
+                    const isMaleSide = c <= 10;
+                    const id = `A-R${r}-C${c}`;
+                    let status = 'kosong';
+                    let record = null;
+
+                    if ((r === 1 && c === 2) || (r === 2 && c === 14)) {
+                        status = 'telah_digunakan';
+                        record = deceasedRecords[recordIndex++];
+                    } else if (r === 1 && c === 7) {
+                        status = 'tempahan'; // Simulate the yellow box #7
+                    } else if (r === 1 && c === 15) {
+                        status = 'tempahan'; // Simulate the yellow box #15
+                    }
+
+                    positions.push({
+                        id, section: 'dewasa', row: r, col: c,
+                        lotNumber: `Blok A - Baris ${r} - Lot ${c}`,
+                        genderAssigned: isMaleSide ? 'lelaki' : 'perempuan',
+                        status, record
+                    });
+                }
+            }
+
+            for (let r = 1; r <= ROW_COUNT_CHILD; r++) {
+                for (let c = 1; c <= COL_COUNT_CHILD; c++) {
+                    const id = `C-R${r}-C${c}`;
+                    let status = 'kosong';
+                    positions.push({
+                        id, section: 'kanak-kanak', row: r + ROW_COUNT_ADULT, col: c, 
+                        lotNumber: `Kanak-kanak - Lot ${c}`,
+                        genderAssigned: 'campur', status, record: null
+                    });
+                }
+            }
+            return positions;
+        };
+
+        const MOCK_DB = generateMockData();
+        let currentHighlightedId = null;
+
+        // --- STYLING LOGIC MATCHING IMAGE ---
+        function getGraveStyles(grave) {
+            // Priority 1: Status
+            if (grave.status === 'telah_digunakan') return 'bg-[#e2e8f0] border-gray-400 text-gray-800'; // Grey
+            if (grave.status === 'tempahan') return 'bg-[#ffcc00] border-[#e6b800] text-gray-900'; // Yellow/Orange
+            
+            // Priority 2: Section / Gender (Kosong)
+            if (grave.section === 'kanak-kanak') return 'bg-[#ffe180] border-[#f0c862] text-gray-800'; // Light Yellow
+            if (grave.genderAssigned === 'lelaki') return 'bg-[#cbe2fa] border-[#a2c8f0] text-[#004085]'; // Light Blue
+            if (grave.genderAssigned === 'perempuan') return 'bg-[#ffc8db] border-[#f0a6c2] text-[#721c24]'; // Light Pink
+            
+            return 'bg-white border-gray-300 text-gray-800';
+        }
+
+        // --- RENDERING ---
+        function initGrid() {
+            const adultContainer = document.getElementById('adultGridContainer');
+            
+            // Generate CSS Grid for Adult Section (19 columns + 1 label column)
+            let adultHTML = `<div class="grid grid-cols-[auto_repeat(19,minmax(0,1fr))] gap-1 items-stretch min-w-[800px]">`;
+
+            // Row 1: The large gender headers
+            adultHTML += `<div></div>`; // Empty corner cell
+            adultHTML += `<div class="col-span-10 bg-[#cbe2fa] border border-[#a2c8f0] text-[#004085] text-center font-bold text-[11px] sm:text-xs py-2 rounded-tl-md shadow-sm">LELAKI (10 PETAK)</div>`;
+            adultHTML += `<div class="col-span-9 bg-[#ffc8db] border border-[#f0a6c2] text-[#721c24] text-center font-bold text-[11px] sm:text-xs py-2 rounded-tr-md shadow-sm">PEREMPUAN (9 PETAK)</div>`;
+
+            // Row 2: The number headers (1 to 19)
+            adultHTML += `<div></div>`; // Empty corner cell
+            for(let i=1; i<=19; i++) {
+                adultHTML += `<div class="text-center font-bold text-gray-700 text-xs sm:text-sm py-2 bg-gray-50 border border-gray-200">${i}</div>`;
+            }
+
+            // Row 3 onwards: The actual grave slots
+            for (let r = 1; r <= ROW_COUNT_ADULT; r++) {
+                const rowGraves = MOCK_DB.filter(g => g.section === 'dewasa' && g.row === r);
+                
+                // Row Label (R1, R2...)
+                adultHTML += `<div class="flex items-center justify-end pr-3 font-bold text-gray-500 text-xs sm:text-sm">R${r}</div>`;
+                
+                // Slots
+                rowGraves.forEach(grave => {
+                    const styleClass = getGraveStyles(grave);
+                    adultHTML += `
+                        <button id="grave-${grave.id}" 
+                                class="grave-slot relative w-full aspect-square flex items-center justify-center font-bold text-sm sm:text-base rounded-[3px] border shadow-sm ${styleClass}"
+                                onclick="handleGraveClick('${grave.id}')"
+                                title="Lot: ${grave.lotNumber}\nStatus: ${grave.status.replace('_', ' ')}">
+                            ${grave.col}
+                        </button>
+                    `;
+                });
+            }
+            adultHTML += `</div>`;
+            adultContainer.innerHTML = adultHTML;
+
+            // Generate Flex Container for Child Section
+            const childContainer = document.getElementById('childGridContainer');
+            let childHTML = '';
+            const childGraves = MOCK_DB.filter(g => g.section === 'kanak-kanak');
+            childGraves.forEach(grave => {
+                const styleClass = getGraveStyles(grave);
+                childHTML += `
+                    <button id="grave-${grave.id}" 
+                            class="grave-slot w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center font-bold text-sm sm:text-base rounded-md border shadow-sm ${styleClass}"
+                            onclick="handleGraveClick('${grave.id}')"
+                            title="Lot: ${grave.lotNumber}\nStatus: ${grave.status.replace('_', ' ')}">
+                        ${grave.col}
+                    </button>
+                `;
+            });
+            // Add the arrow icon at the end like the image
+            childHTML += `<div class="w-10 flex items-center justify-center text-green-700"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></div>`
+            
+            childContainer.innerHTML = childHTML;
+        }
+
+        // --- INTERACTION LOGIC (Preserved from previous) ---
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const suggestionsBox = document.getElementById('searchSuggestions');
+            
+            if (query.length === 0) {
+                suggestionsBox.classList.add('hidden');
+                clearHighlight();
+                return;
+            }
+
+            const results = MOCK_DB.filter(grave => 
+                grave.status === 'telah_digunakan' && grave.record && grave.record.name.toLowerCase().includes(query)
+            );
+
+            if (results.length > 0) {
+                let html = '';
+                results.forEach(grave => {
+                    html += `
+                        <button class="w-full text-left px-4 py-3 hover:bg-green-50 border-b border-gray-100 last:border-0 transition-colors"
+                                onclick="selectSearchResult('${grave.id}')">
+                            <p class="font-semibold text-gray-800">${grave.record.name}</p>
+                            <p class="text-sm text-gray-500">${grave.lotNumber}</p>
+                        </button>
+                    `;
+                });
+                suggestionsBox.innerHTML = html;
+            } else {
+                suggestionsBox.innerHTML = `<div class="p-4 text-center text-gray-500">Tiada rekod dijumpai.</div>`;
+            }
+            suggestionsBox.classList.remove('hidden');
+        }
+
+        function selectSearchResult(graveId) {
+            const grave = MOCK_DB.find(g => g.id === graveId);
+            if(!grave) return;
+
+            document.getElementById('searchInput').value = grave.record.name;
+            document.getElementById('searchSuggestions').classList.add('hidden');
+            
+            applyHighlight(graveId);
+            document.getElementById('searchInput').blur();
+
+            setTimeout(() => {
+                const el = document.getElementById(`grave-${graveId}`);
+                const container = document.getElementById('mapContainer');
+                if(el && container) {
+                    const elRect = el.getBoundingClientRect();
+                    const containerRect = container.getBoundingClientRect();
+                    const scrollLeft = el.offsetLeft - (containerRect.width / 2) + (elRect.width / 2);
+                    const scrollTop = el.offsetTop - (containerRect.height / 2) + (elRect.height / 2);
+                    container.scrollTo({ left: scrollLeft, top: scrollTop, behavior: 'smooth' });
+                }
+            }, 100);
+        }
+
+        function handleGraveClick(graveId) {
+            applyHighlight(graveId);
+            openModal(graveId);
+        }
+
+        function applyHighlight(graveId) {
+            clearHighlight();
+            currentHighlightedId = graveId;
+            const el = document.getElementById(`grave-${graveId}`);
+            if(el) el.classList.add('grave-highlighted');
+        }
+
+        function clearHighlight() {
+            if(currentHighlightedId) {
+                const el = document.getElementById(`grave-${currentHighlightedId}`);
+                if(el) el.classList.remove('grave-highlighted');
+                currentHighlightedId = null;
+            }
+        }
+
+        function openModal(graveId) {
+            const grave = MOCK_DB.find(g => g.id === graveId);
+            if(!grave) return;
+
+            const modalBody = document.getElementById('modalBody');
+            
+            let html = `
+                <div class="mb-6 pb-4 border-b border-gray-100">
+                    <p class="text-sm text-gray-500 uppercase font-semibold tracking-wider">LOKASI KUBUR</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-1">${grave.lotNumber}</p>
+                    <p class="text-sm text-gray-600 mt-1 capitalize">Kategori: ${grave.section} ${grave.section === 'dewasa' ? `(${grave.genderAssigned})` : ''}</p>
+                </div>
+            `;
+
+            if (grave.status === 'kosong') {
+                html += `<div class="text-center py-8"><h4 class="text-xl font-bold text-gray-700">Lot Ini Kosong</h4></div>`;
+            } else if (grave.status === 'tempahan') {
+                html += `<div class="text-center py-8"><h4 class="text-xl font-bold text-[#d97706]">Telah Ditempah</h4></div>`;
+            } else if (grave.record) {
+                const dateStr = new Date(grave.record.dateOfDeath).toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' });
+                html += `
+                    <div class="space-y-5">
+                        <div>
+                            <p class="text-sm text-gray-500 font-semibold mb-1">Nama Penuh</p>
+                            <p class="text-xl font-bold text-gray-900">${grave.record.name}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                <p class="text-sm text-gray-500 font-semibold">Tarikh Meninggal</p>
+                                <p class="text-lg font-bold text-gray-800 mt-1">${dateStr}</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                <p class="text-sm text-gray-500 font-semibold">Jantina & Umur</p>
+                                <p class="text-lg font-bold text-gray-800 mt-1 capitalize">${grave.record.gender}, ${grave.record.age} thn</p>
+                            </div>
+                        </div>
+                        ${grave.record.notes ? `
+                            <div class="mt-4 p-4 bg-green-50 rounded-xl border border-green-100 text-green-800">
+                                <p class="text-sm font-semibold mb-1">Nota Tambahan</p>
+                                <p class="text-base">${grave.record.notes}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            modalBody.innerHTML = html;
+            modalBody.scrollTop = 0; 
+            document.getElementById('infoModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('infoModal').classList.add('hidden');
+            if(document.getElementById('searchInput').value === '') clearHighlight();
+        }
+
+        document.addEventListener('click', function(event) {
+            const searchContainer = document.querySelector('.relative.w-full');
+            const suggestionsBox = document.getElementById('searchSuggestions');
+            if (searchContainer && !searchContainer.contains(event.target)) {
+                if(suggestionsBox) suggestionsBox.classList.add('hidden');
+            }
+        });
+
+        window.onload = initGrid;
+    </script>
+</body>
+</html>
