@@ -3,486 +3,703 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
+
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#1a5d2e">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="description" content="Sistem Carian Interaktif Tanah Perkuburan Islam">
-    
-    <title>eMaqbarah - Peta Kubur</title>
-    
-    <!-- Load Tailwind CSS -->
+    <meta name="description" content="eMaqbarah - Sistem Carian Lokasi Pusara Tanah Perkuburan Islam Masjid Al-Rasyidin">
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/fypbhZ8v/masjid-arrasyidin.png">
+
+    <title>eMaqbarah - Peta Kubur | Masjid Al-Rasyidin</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-            overscroll-behavior-y: none;
-        }
 
-        /* Custom Scrollbar */
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overscroll-behavior-y: none; }
+
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
         .scrolling-touch { -webkit-overflow-scrolling: touch; }
 
-        /* Highlight Animation matching the image (Green Glow) */
         @keyframes glowGreen {
-            0% { box-shadow: 0 0 5px 2px rgba(34, 197, 94, 0.5); transform: scale(1); }
-            50% { box-shadow: 0 0 15px 6px rgba(34, 197, 94, 0.7); transform: scale(1.1); z-index: 20; }
-            100% { box-shadow: 0 0 5px 2px rgba(34, 197, 94, 0.5); transform: scale(1); }
+            0%   { box-shadow: 0 0 5px 2px rgba(34,197,94,.5); transform: scale(1); }
+            50%  { box-shadow: 0 0 15px 6px rgba(34,197,94,.7); transform: scale(1.15); z-index: 20; }
+            100% { box-shadow: 0 0 5px 2px rgba(34,197,94,.5); transform: scale(1); }
         }
-        
-        .grave-slot {
-            transition: all 0.2s ease;
-        }
-        
-        .grave-slot:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            z-index: 10;
-        }
-
-        /* The specific selected state matching the image */
+        .grave-slot { transition: all .15s ease; }
+        .grave-slot:hover { transform: scale(1.08); box-shadow: 0 4px 6px -1px rgba(0,0,0,.15); z-index: 10; }
         .grave-highlighted {
-            background-color: #22c55e !important; /* Green */
+            background-color: #22c55e !important;
             border: 3px solid #16a34a !important;
-            color: white !important;
+            color: #fff !important;
             animation: glowGreen 1.5s infinite;
             z-index: 30;
         }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid #d1fae5;
+            border-top-color: #1a5d2e; border-radius: 50%;
+            animation: spin .8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .animate-slide-up { animation: slideUp .3s ease-out forwards; }
+        .mb-safe { margin-bottom: env(safe-area-inset-bottom); }
+        [hidden] { display: none !important; }
     </style>
 </head>
 <body class="min-h-[100dvh] text-gray-800 flex flex-col overflow-hidden">
 
-    <!-- TOP NAVBAR (Matching the dark green theme) -->
-    <nav class="bg-[#1a5d2e] text-white shrink-0 z-30 shadow-md">
-        <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-14 sm:h-16">
-                <!-- Logo & Links -->
-                <div class="flex items-center gap-8">
-                    <div class="flex items-center gap-3">
-                        <img src="https://i.postimg.cc/fypbhZ8v/masjid-arrasyidin.png" alt="Logo Masjid" class="h-10 sm:h-11 w-auto object-contain bg-white rounded-full p-0.5 border border-white/20 shadow-sm" onerror="this.style.display='none'">
-                        <div class="flex flex-col justify-center">
-                            <span class="font-serif font-bold text-xl sm:text-2xl tracking-wide leading-none">eMaqbarah</span>
-                            <span class="text-[10px] sm:text-xs font-semibold text-green-100 tracking-wider mt-1 uppercase">Masjid Al-Rasyidin</span>
-                        </div>
+<!-- ============ NAVBAR ============ -->
+<nav class="bg-[#1a5d2e] text-white shrink-0 z-30 shadow-md">
+    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-14 sm:h-16">
+            <div class="flex items-center gap-8">
+                <a href="../" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Kembali ke Laman Utama">
+                    <img src="https://i.postimg.cc/fypbhZ8v/masjid-arrasyidin.png" alt="Logo Masjid" class="h-10 sm:h-11 w-auto object-contain bg-white rounded-full p-0.5 border border-white/20 shadow-sm" onerror="this.style.display='none'">
+                    <div class="flex flex-col justify-center">
+                        <span class="font-serif font-bold text-xl sm:text-2xl tracking-wide leading-none">eMaqbarah</span>
+                        <span class="text-[10px] sm:text-xs font-semibold text-green-100 tracking-wider mt-1 uppercase">Masjid Al-Rasyidin</span>
                     </div>
-                    
-                    <div class="hidden md:flex space-x-8 text-sm font-semibold tracking-wide">
-                        <a href="#" class="border-b-2 border-white text-white py-5">PETA KUBUR</a>
-                        <a href="#" class="text-white/80 hover:text-white py-5 transition-colors">CARIAN</a>
-                        <a href="#" class="text-white/80 hover:text-white py-5 transition-colors">DIREKTORI</a>
-                        <a href="#" class="text-white/80 hover:text-white py-5 transition-colors">INFO</a>
-                    </div>
-                </div>
+                </a>
 
-                <!-- Admin Button -->
-                <div class="flex items-center">
-                    <button class="flex items-center gap-2 border border-white/40 bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-full text-sm font-medium transition-colors">
-                        Admin 
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    </button>
+                <div class="hidden md:flex space-x-8 text-sm font-semibold tracking-wide">
+                    <a href="#peta" class="border-b-2 border-white text-white py-5">PETA KUBUR</a>
+                    <a href="#" onclick="focusSearch(); return false;" class="text-white/80 hover:text-white py-5 transition-colors">CARIAN</a>
+                    <a href="#" onclick="openDirectory(); return false;" class="text-white/80 hover:text-white py-5 transition-colors">DIREKTORI</a>
+                    <a href="#" onclick="openInfo(); return false;" class="text-white/80 hover:text-white py-5 transition-colors">INFO</a>
                 </div>
             </div>
+
+            <div class="flex items-center gap-2">
+                <a href="../" class="hidden sm:flex items-center gap-2 border border-white/40 bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-full text-sm font-medium transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    Utama
+                </a>
+                <a href="../admin/" class="flex items-center gap-2 border border-white/40 bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-full text-sm font-medium transition-colors">
+                    Admin
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </a>
+            </div>
         </div>
-    </nav>
+    </div>
+</nav>
 
-    <!-- SEARCH & FILTER BAR -->
-    <div class="bg-white border-b border-gray-200 shrink-0 z-20">
-        <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-            <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
-                
-                <!-- Search Input Group -->
-                <div class="flex w-full sm:flex-1 relative">
-                    <div class="relative w-full">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                        </div>
-                        <input type="text" id="searchInput" onkeyup="handleSearch()" autocomplete="off" class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-l-lg focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="Cari nama si mati...">
-                        
-                        <!-- Search Suggestions Dropdown -->
-                        <div id="searchSuggestions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 max-h-60 overflow-y-auto z-50"></div>
+<!-- ============ SEARCH & FILTER ============ -->
+<div class="bg-white border-b border-gray-200 shrink-0 z-20">
+    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
+            <div class="flex w-full sm:flex-1 relative">
+                <div class="relative w-full" id="searchWrap">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
-                    <button class="bg-[#16a34a] hover:bg-green-700 text-white font-medium px-6 py-2.5 rounded-r-lg transition-colors border border-[#16a34a]">
-                        Cari
-                    </button>
+                    <input type="text" id="searchInput" onkeyup="handleSearch()" autocomplete="off"
+                           class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-l-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                           placeholder="Cari nama si mati...">
+                    <div id="searchSuggestions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 max-h-72 overflow-y-auto z-50"></div>
                 </div>
+                <button onclick="handleSearch(true)" class="bg-[#16a34a] hover:bg-green-700 text-white font-medium px-6 py-2.5 rounded-r-lg transition-colors border border-[#16a34a] shrink-0">Cari</button>
+            </div>
 
-                <!-- Filters -->
-                <div class="flex w-full sm:w-auto gap-3">
-                    <select class="block w-full sm:w-40 pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-lg text-gray-700">
-                        <option>Semua Blok</option>
-                        <option>Blok A</option>
-                    </select>
-                    <select class="block w-full sm:w-40 pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-lg text-gray-700">
-                        <option>Semua Status</option>
-                        <option>Kosong</option>
-                        <option>Digunakan</option>
-                    </select>
+            <div class="flex w-full sm:w-auto gap-3">
+                <select id="filterBlok" onchange="applyFilters()" class="block w-full sm:w-44 pl-3 pr-10 py-2.5 border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 text-sm rounded-lg text-gray-700">
+                    <option value="semua">Semua Bahagian</option>
+                    <option value="L">Lelaki</option>
+                    <option value="P">Perempuan</option>
+                    <option value="K">Kanak-kanak</option>
+                </select>
+                <select id="filterStatus" onchange="applyFilters()" class="block w-full sm:w-40 pl-3 pr-10 py-2.5 border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 text-sm rounded-lg text-gray-700">
+                    <option value="semua">Semua Status</option>
+                    <option value="kosong">Kosong</option>
+                    <option value="digunakan">Telah Digunakan</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Status bar -->
+        <div id="statusBar" class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs sm:text-sm text-gray-600">
+            <span id="statSync" class="flex items-center gap-1.5 text-gray-500">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Menyambung ke pangkalan data...
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- ============ MAP ============ -->
+<main id="peta" class="flex-1 overflow-hidden relative bg-white m-2 sm:m-4 rounded-xl shadow-sm border border-gray-200">
+
+    <!-- Loading -->
+    <div id="loadingState" class="absolute inset-0 flex flex-col items-center justify-center bg-white z-10 gap-4">
+        <div class="spinner"></div>
+        <p class="text-sm font-semibold text-[#1a5d2e]">Memuat turun data pusara...</p>
+    </div>
+
+    <!-- Error -->
+    <div id="errorState" hidden class="absolute inset-0 flex flex-col items-center justify-center bg-white z-10 gap-3 px-6 text-center">
+        <svg class="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.74 4a2 2 0 00-3.48 0L3.33 16a2 2 0 001.74 3z"/></svg>
+        <h3 class="font-bold text-gray-800">Gagal memuatkan data</h3>
+        <p id="errorMsg" class="text-sm text-gray-500 max-w-md"></p>
+        <button onclick="loadData()" class="mt-2 px-5 py-2 bg-[#1a5d2e] text-white rounded-lg font-semibold text-sm hover:bg-green-800">Cuba Lagi</button>
+    </div>
+
+    <div id="mapContainer" class="w-full h-full overflow-auto p-4 sm:p-6 custom-scrollbar scrolling-touch overscroll-contain">
+        <div class="min-w-max mx-auto space-y-8">
+
+            <section data-sect="L">
+                <div class="flex items-center gap-2 mb-3">
+                    <h2 class="text-lg font-bold text-gray-800 tracking-wide">BLOK A</h2>
+                    <span class="text-gray-300">|</span>
+                    <span class="text-[#004085] font-bold">BAHAGIAN LELAKI</span>
+                    <span id="countL" class="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full"></span>
+                </div>
+                <div id="gridL" class="border border-gray-200 rounded-lg p-3 bg-gray-50/50"></div>
+            </section>
+
+            <section data-sect="P">
+                <div class="flex items-center gap-2 mb-3">
+                    <h2 class="text-lg font-bold text-gray-800 tracking-wide">BLOK A</h2>
+                    <span class="text-gray-300">|</span>
+                    <span class="text-[#721c24] font-bold">BAHAGIAN PEREMPUAN</span>
+                    <span id="countP" class="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full"></span>
+                </div>
+                <div id="gridP" class="border border-gray-200 rounded-lg p-3 bg-gray-50/50"></div>
+            </section>
+
+            <section data-sect="K">
+                <div class="flex items-center gap-2 mb-3">
+                    <h3 class="text-[#1a5d2e] font-bold text-sm uppercase tracking-wide">Kawasan Kanak-kanak (Bahagian Bawah Kiri)</h3>
+                    <span id="countK" class="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full"></span>
+                </div>
+                <div id="gridK" class="border border-gray-200 rounded-lg p-3 bg-gray-50/50"></div>
+            </section>
+
+            <!-- Rekod tanpa lot -->
+            <section id="noLotSection" hidden>
+                <h3 class="text-amber-700 font-bold text-sm mb-3 uppercase tracking-wide">Rekod Tanpa Nombor Lot</h3>
+                <div id="noLotList" class="flex flex-wrap gap-2"></div>
+            </section>
+
+            <!-- Legend -->
+            <div class="mt-8 border border-gray-200 rounded-xl p-4 bg-white">
+                <h4 class="text-xs font-bold text-gray-800 mb-3 uppercase">Petunjuk</h4>
+                <div class="flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-gray-700">
+                    <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#cbe2fa] border border-[#a2c8f0]"></div> Lot Lelaki (kosong)</span>
+                    <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#ffc8db] border border-[#f0a6c2]"></div> Lot Perempuan (kosong)</span>
+                    <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#ffe180] border border-[#f0c862]"></div> Lot Kanak-kanak (kosong)</span>
+                    <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#e2e8f0] border border-gray-400"></div> Telah Digunakan</span>
+                    <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#22c55e] border border-[#16a34a]"></div> Dipilih / Hasil Carian</span>
                 </div>
             </div>
         </div>
     </div>
+</main>
 
-    <!-- MAIN GRID AREA -->
-    <main class="flex-1 overflow-hidden relative bg-white m-2 sm:m-4 rounded-xl shadow-sm border border-gray-200">
-        <div id="mapContainer" class="w-full h-full overflow-auto p-4 sm:p-6 custom-scrollbar scrolling-touch overscroll-contain">
-            <div class="min-w-max mx-auto space-y-8">
-                
-                <!-- ADULT SECTION -->
-                <div>
-                    <!-- Header Title like the image -->
-                    <div class="flex items-center gap-2 mb-3">
-                        <h2 class="text-lg font-bold text-gray-800 tracking-wide">BLOK A</h2>
-                        <span class="text-gray-300">|</span>
-                        <span class="text-gray-800 font-bold">KESELURUHAN</span>
-                    </div>
+<!-- ============ FOOTER ============ -->
+<footer class="bg-white border-t border-gray-200 shrink-0 z-20 shadow-inner">
+    <div class="max-w-[1400px] mx-auto px-4 py-3 text-center space-y-1">
+        <p class="text-sm text-gray-500 font-medium">&copy; 2026 Pengurusan MASJID AL-RASYIDIN &middot;
+            <a href="../" class="text-[#1a5d2e] hover:underline font-semibold">Laman Utama</a>
+        </p>
+        <p class="text-[11px] text-gray-400 leading-relaxed max-w-3xl mx-auto">
+            Paparan awam ini hanya memaparkan nama si mati, tarikh kematian dan lokasi lot. Maklumat waris, nombor telefon dan alamat tidak dipaparkan.
+        </p>
+    </div>
+</footer>
 
-                    <div id="adultGridContainer" class="border border-gray-200 rounded-lg p-3 bg-gray-50/50">
-                        <!-- Rendered by JS using exact CSS Grid layout -->
-                    </div>
-                </div>
-
-                <!-- CHILD SECTION -->
-                <div>
-                    <h3 class="text-[#1a5d2e] font-bold text-sm mb-3 uppercase tracking-wide">Kawasan Kanak-Kanak (Bahagian Bawah Kiri)</h3>
-                    <div id="childGridContainer" class="flex flex-wrap gap-2">
-                        <!-- Rendered by JS -->
-                    </div>
-                </div>
-
-                <!-- LEGEND / PETUNJUK -->
-                <div class="mt-8 border border-gray-200 rounded-xl p-4 bg-white">
-                    <h4 class="text-xs font-bold text-gray-800 mb-3 uppercase">Petunjuk</h4>
-                    <div class="flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-gray-700">
-                        <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#cbe2fa] border border-[#a2c8f0]"></div> Lelaki</span>
-                        <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#ffc8db] border border-[#f0a6c2]"></div> Perempuan</span>
-                        <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#ffe180] border border-[#f0c862]"></div> Kanak-kanak</span>
-                        <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#22c55e] border border-[#16a34a]"></div> Dipilih / Cari</span>
-                        <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-white border border-gray-300"></div> Kosong</span>
-                        <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#e2e8f0] border border-gray-300"></div> Telah Digunakan</span>
-                        <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#ffcc00] border border-[#e6b800]"></div> Tempahan</span>
-                    </div>
-                </div>
-
-            </div>
+<!-- ============ MODAL ============ -->
+<div id="infoModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-gray-900 bg-opacity-60 backdrop-blur-sm" onclick="closeModal()">
+    <div class="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh] animate-slide-up sm:animate-none" onclick="event.stopPropagation()">
+        <div class="bg-[#1a5d2e] px-5 py-4 flex justify-between items-center text-white shrink-0">
+            <h3 id="modalTitle" class="text-lg font-bold tracking-wide">Maklumat Pusara</h3>
+            <button onclick="closeModal()" class="p-1 hover:bg-white/20 rounded-full transition-colors" aria-label="Tutup">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
         </div>
-    </main>
-
-    <!-- FOOTER -->
-    <footer class="bg-white border-t border-gray-200 shrink-0 z-20 shadow-inner">
-        <div class="max-w-[1400px] mx-auto px-4 py-4 text-center">
-            <p class="text-sm text-gray-500 font-medium">&copy; 2026 Pengurusan MASJID AL-RASYIDIN.</p>
-        </div>
-    </footer>
-
-    <!-- MODAL (Unchanged logic, slightly adjusted colors) -->
-    <div id="infoModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-gray-900 bg-opacity-60 backdrop-blur-sm transition-opacity" onclick="closeModal()">
-        <div class="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh] animate-slide-up sm:animate-none" onclick="event.stopPropagation()">
-            <div class="bg-[#1a5d2e] px-5 py-4 flex justify-between items-center text-white shrink-0">
-                <h3 class="text-lg font-bold tracking-wide">Maklumat Pusara</h3>
-                <button onclick="closeModal()" class="p-1 hover:bg-white/20 rounded-full transition-colors">
-                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-            </div>
-            <div id="modalBody" class="p-6 flex-1 overflow-y-auto scrolling-touch custom-scrollbar"></div>
-            <div class="bg-gray-50 px-5 py-4 border-t border-gray-200 shrink-0 mb-safe">
-                <button onclick="closeModal()" class="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-lg transition-colors">Tutup</button>
-            </div>
+        <div id="modalBody" class="p-6 flex-1 overflow-y-auto scrolling-touch custom-scrollbar"></div>
+        <div class="bg-gray-50 px-5 py-4 border-t border-gray-200 shrink-0 mb-safe">
+            <button onclick="closeModal()" class="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-lg transition-colors">Tutup</button>
         </div>
     </div>
+</div>
 
-    <style>
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
-        .mb-safe { margin-bottom: env(safe-area-inset-bottom); }
-    </style>
+<script>
+/* =========================================================================
+   eMaqbarah - Peta Kubur Masjid Al-Rasyidin
+   Sumber data : Google Sheet "Database Kubur" > sheet Resit_Jenazah
+   ========================================================================= */
 
-    <!-- SCRIPT LOGIC -->
-    <script>
-        const ROW_COUNT_ADULT = 3; // Kurangkan ke 3 untuk paparan demo lebih kemas
-        const COL_COUNT_ADULT = 19; 
-        const ROW_COUNT_CHILD = 1;
-        const COL_COUNT_CHILD = 10;
+const CONFIG = {
+    // CSV terbitan (File > Share > Publish to web) bagi sheet Resit_Jenazah (gid=2102459323)
+    CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBehO5MSacK0IxmwS_KfOaM2xAsvaIeIN8bXc1Sblfb8chAyV6i9_TGWpF5SRIrdvnd1TnyRdT-5NG/pub?gid=2102459323&single=true&output=csv",
 
-        // --- MOCK DATABASE ---
-        const generateMockData = () => {
-            const positions = [];
-            const deceasedRecords = [
-                { id: 101, name: "Ahmad bin Abdullah", dateOfDeath: "2023-05-15", age: 65, gender: 'lelaki', notes: "Meninggal kerana sakit tua." },
-                { id: 102, name: "Fatimah binti Hassan", dateOfDeath: "2023-06-20", age: 72, gender: 'perempuan', notes: "" },
-                { id: 103, name: "Mohd Ali bin Abu", dateOfDeath: "2024-01-10", age: 55, gender: 'lelaki', notes: "Kemalangan" },
-            ];
+    // Nama header dalam sheet. Tukar di sini kalau header sheet berubah.
+    HEADER: {
+        nama:        "Nama Simati",
+        tarikhMati:  "Tarikh Kematian",
+        lot:         "No Lot Kubur",
+        rujukan:     "No Rujukan"
+    },
 
-            let recordIndex = 0;
+    // --- SAIZ PETAK (fleksibel) ---
+    // Grid akan auto-besar kalau database ada lot melebihi nombor minimum ini.
+    MIN_LOT:    { L: 200, P: 200, K: 50 },
+    LOT_PER_ROW:{ L: 10,  P: 10,  K: 10 },
+    AUTO_GROW:  true,   // true = grid membesar sendiri ikut lot tertinggi dalam database
+    GROW_BUFFER: 20     // berapa lot kosong tambahan selepas lot tertinggi
+};
 
-            for (let r = 1; r <= ROW_COUNT_ADULT; r++) {
-                for (let c = 1; c <= COL_COUNT_ADULT; c++) {
-                    const isMaleSide = c <= 10;
-                    const id = `A-R${r}-C${c}`;
-                    let status = 'kosong';
-                    let record = null;
+/* ---------- STATE ---------- */
+let GRAVES = {};          // { "L40": {code, sect, num, records:[]} }
+let NO_LOT_RECORDS = [];  // rekod yang tiada nombor lot
+let ALL_RECORDS = [];
+let SECTION_SIZE = { L: 0, P: 0, K: 0 };
+let currentHighlightedId = null;
 
-                    if ((r === 1 && c === 2) || (r === 2 && c === 14)) {
-                        status = 'telah_digunakan';
-                        record = deceasedRecords[recordIndex++];
-                    } else if (r === 1 && c === 7) {
-                        status = 'tempahan'; // Simulate the yellow box #7
-                    } else if (r === 1 && c === 15) {
-                        status = 'tempahan'; // Simulate the yellow box #15
-                    }
+/* =========================================================================
+   1. CSV PARSER (RFC 4180 - handle petikan & baris baru dalam sel)
+   ========================================================================= */
+function parseCSV(text) {
+    text = text.replace(/^﻿/, '');       // buang BOM
+    const rows = [];
+    let row = [], field = '', inQuotes = false;
 
-                    positions.push({
-                        id, section: 'dewasa', row: r, col: c,
-                        lotNumber: `Blok A - Baris ${r} - Lot ${c}`,
-                        genderAssigned: isMaleSide ? 'lelaki' : 'perempuan',
-                        status, record
-                    });
-                }
-            }
+    for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
 
-            for (let r = 1; r <= ROW_COUNT_CHILD; r++) {
-                for (let c = 1; c <= COL_COUNT_CHILD; c++) {
-                    const id = `C-R${r}-C${c}`;
-                    let status = 'kosong';
-                    positions.push({
-                        id, section: 'kanak-kanak', row: r + ROW_COUNT_ADULT, col: c, 
-                        lotNumber: `Kanak-kanak - Lot ${c}`,
-                        genderAssigned: 'campur', status, record: null
-                    });
-                }
-            }
-            return positions;
+        if (inQuotes) {
+            if (ch === '"') {
+                if (text[i + 1] === '"') { field += '"'; i++; }   // "" -> "
+                else inQuotes = false;
+            } else field += ch;
+            continue;
+        }
+
+        if (ch === '"')       { inQuotes = true; }
+        else if (ch === ',')  { row.push(field); field = ''; }
+        else if (ch === '\r') { /* abaikan */ }
+        else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+        else                  { field += ch; }
+    }
+    if (field.length || row.length) { row.push(field); rows.push(row); }
+    return rows;
+}
+
+/* =========================================================================
+   2. PENGHURAI MEDAN
+   ========================================================================= */
+
+// "LOT 40 (L40)" -> {sect:'L', num:40}   |  "P24" -> {sect:'P', num:24}  | "Tiada Lot" -> null
+function parseLot(raw) {
+    if (!raw) return null;
+    const s = String(raw).toUpperCase().trim();
+    if (!s || /TIADA|TIDAK|N\/?A|^-+$/.test(s)) return null;
+
+    // Keutamaan 1: kod dalam kurungan, cth (L40) / (P 24) / (K5)
+    let m = s.match(/\(\s*([LPK])\s*[-\s]?(\d+)\s*\)/);
+    // Keutamaan 2: kod berdiri sendiri, cth L40 / P-24
+    if (!m) m = s.match(/\b([LPK])\s*[-\s]?(\d+)\b/);
+    if (m) return { sect: m[1], num: parseInt(m[2], 10) };
+
+    // Keutamaan 3: "LOT 40" tanpa huruf bahagian -> tidak dapat ditentukan
+    return null;
+}
+
+// Jantina daripada nama: BINTI -> perempuan, BIN -> lelaki (BINTI disemak dahulu)
+function genderFromName(nama) {
+    if (!nama) return null;
+    const s = ' ' + String(nama).toUpperCase().replace(/[^A-Z\s]/g, ' ').replace(/\s+/g, ' ') + ' ';
+    if (/\sBINTI\s|\sBTE?\s/.test(s))  return 'Perempuan';
+    if (/\sBIN\s|\sB\s/.test(s))       return 'Lelaki';
+    return null;
+}
+
+const BULAN = ['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
+
+// Format tarikh. Kalau tak pasti, pulangkan teks asal (jangan teka tarikh kubur).
+function formatTarikh(raw) {
+    if (!raw) return '-';
+    const s = String(raw).trim();
+    let d, mo, y, m;
+
+    if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)))          { y = +m[1]; mo = +m[2]; d = +m[3]; }
+    else if ((m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/))) {
+        // Konvensyen Malaysia: DD-MM-YYYY
+        d = +m[1]; mo = +m[2]; y = +m[3];
+        if (d <= 12 && mo > 12) { const t = d; d = mo; mo = t; }   // pembetulan jelas
+    }
+    else return s;   // format tak dikenali - papar apa adanya
+
+    if (!(mo >= 1 && mo <= 12) || !(d >= 1 && d <= 31)) return s;
+    return d + ' ' + BULAN[mo - 1] + ' ' + y;
+}
+
+function esc(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, c =>
+        ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+/* =========================================================================
+   3. MUAT DATA
+   ========================================================================= */
+async function loadData() {
+    document.getElementById('errorState').hidden = true;
+    document.getElementById('loadingState').hidden = false;
+
+    try {
+        const res = await fetch(CONFIG.CSV_URL + '&_cb=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        buildFromCSV(await res.text());
+
+        document.getElementById('loadingState').hidden = true;
+        render();
+    } catch (err) {
+        document.getElementById('loadingState').hidden = true;
+        document.getElementById('errorState').hidden = false;
+        document.getElementById('errorMsg').textContent =
+            'Tidak dapat menghubungi Google Sheets. Pastikan sheet masih diterbitkan (Publish to web). Ralat: ' + err.message;
+        document.getElementById('statSync').innerHTML =
+            '<span class="w-2 h-2 rounded-full bg-red-500"></span> Tiada sambungan data';
+    }
+}
+
+function buildFromCSV(csvText) {
+    const rows = parseCSV(csvText);
+    if (!rows.length) throw new Error('Fail CSV kosong');
+
+    const head = rows[0].map(h => h.trim());
+    const idx = {
+        nama:       head.indexOf(CONFIG.HEADER.nama),
+        tarikhMati: head.indexOf(CONFIG.HEADER.tarikhMati),
+        lot:        head.indexOf(CONFIG.HEADER.lot),
+        rujukan:    head.indexOf(CONFIG.HEADER.rujukan)
+    };
+    if (idx.nama === -1 || idx.lot === -1)
+        throw new Error('Header "' + CONFIG.HEADER.nama + '" atau "' + CONFIG.HEADER.lot + '" tidak dijumpai');
+
+    ALL_RECORDS = [];
+    NO_LOT_RECORDS = [];
+    const maxNum = { L: 0, P: 0, K: 0 };
+    const lotMap = {};
+
+    for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        const nama = (r[idx.nama] || '').trim();
+        if (!nama) continue;                       // langkau baris kosong / baris penomboran
+
+        const rec = {
+            nama,
+            tarikhMati: (r[idx.tarikhMati] || '').trim(),
+            lotRaw:     (r[idx.lot] || '').trim(),
+            rujukan:    idx.rujukan > -1 ? (r[idx.rujukan] || '').trim() : '',
+            jantina:    genderFromName(nama)
         };
+        ALL_RECORDS.push(rec);
 
-        const MOCK_DB = generateMockData();
-        let currentHighlightedId = null;
+        const lot = parseLot(rec.lotRaw);
+        if (!lot) { NO_LOT_RECORDS.push(rec); continue; }
 
-        // --- STYLING LOGIC MATCHING IMAGE ---
-        function getGraveStyles(grave) {
-            // Priority 1: Status
-            if (grave.status === 'telah_digunakan') return 'bg-[#e2e8f0] border-gray-400 text-gray-800'; // Grey
-            if (grave.status === 'tempahan') return 'bg-[#ffcc00] border-[#e6b800] text-gray-900'; // Yellow/Orange
-            
-            // Priority 2: Section / Gender (Kosong)
-            if (grave.section === 'kanak-kanak') return 'bg-[#ffe180] border-[#f0c862] text-gray-800'; // Light Yellow
-            if (grave.genderAssigned === 'lelaki') return 'bg-[#cbe2fa] border-[#a2c8f0] text-[#004085]'; // Light Blue
-            if (grave.genderAssigned === 'perempuan') return 'bg-[#ffc8db] border-[#f0a6c2] text-[#721c24]'; // Light Pink
-            
-            return 'bg-white border-gray-300 text-gray-800';
+        rec.code = lot.sect + lot.num;
+        if (lot.num > maxNum[lot.sect]) maxNum[lot.sect] = lot.num;
+        (lotMap[rec.code] = lotMap[rec.code] || []).push(rec);
+    }
+
+    // --- saiz grid fleksibel ---
+    ['L','P','K'].forEach(s => {
+        SECTION_SIZE[s] = CONFIG.AUTO_GROW
+            ? Math.max(CONFIG.MIN_LOT[s], maxNum[s] + (maxNum[s] ? CONFIG.GROW_BUFFER : 0))
+            : CONFIG.MIN_LOT[s];
+    });
+
+    GRAVES = {};
+    ['L','P','K'].forEach(s => {
+        for (let n = 1; n <= SECTION_SIZE[s]; n++) {
+            const code = s + n;
+            GRAVES[code] = { code, sect: s, num: n, records: lotMap[code] || [] };
         }
-
-        // --- RENDERING ---
-        function initGrid() {
-            const adultContainer = document.getElementById('adultGridContainer');
-            
-            // Generate CSS Grid for Adult Section (19 columns + 1 label column)
-            let adultHTML = `<div class="grid grid-cols-[auto_repeat(19,minmax(0,1fr))] gap-1 items-stretch min-w-[800px]">`;
-
-            // Row 1: The large gender headers
-            adultHTML += `<div></div>`; // Empty corner cell
-            adultHTML += `<div class="col-span-10 bg-[#cbe2fa] border border-[#a2c8f0] text-[#004085] text-center font-bold text-[11px] sm:text-xs py-2 rounded-tl-md shadow-sm">LELAKI (10 PETAK)</div>`;
-            adultHTML += `<div class="col-span-9 bg-[#ffc8db] border border-[#f0a6c2] text-[#721c24] text-center font-bold text-[11px] sm:text-xs py-2 rounded-tr-md shadow-sm">PEREMPUAN (9 PETAK)</div>`;
-
-            // Row 2: The number headers (1 to 19)
-            adultHTML += `<div></div>`; // Empty corner cell
-            for(let i=1; i<=19; i++) {
-                adultHTML += `<div class="text-center font-bold text-gray-700 text-xs sm:text-sm py-2 bg-gray-50 border border-gray-200">${i}</div>`;
-            }
-
-            // Row 3 onwards: The actual grave slots
-            for (let r = 1; r <= ROW_COUNT_ADULT; r++) {
-                const rowGraves = MOCK_DB.filter(g => g.section === 'dewasa' && g.row === r);
-                
-                // Row Label (R1, R2...)
-                adultHTML += `<div class="flex items-center justify-end pr-3 font-bold text-gray-500 text-xs sm:text-sm">R${r}</div>`;
-                
-                // Slots
-                rowGraves.forEach(grave => {
-                    const styleClass = getGraveStyles(grave);
-                    adultHTML += `
-                        <button id="grave-${grave.id}" 
-                                class="grave-slot relative w-full aspect-square flex items-center justify-center font-bold text-sm sm:text-base rounded-[3px] border shadow-sm ${styleClass}"
-                                onclick="handleGraveClick('${grave.id}')"
-                                title="Lot: ${grave.lotNumber}\nStatus: ${grave.status.replace('_', ' ')}">
-                            ${grave.col}
-                        </button>
-                    `;
-                });
-            }
-            adultHTML += `</div>`;
-            adultContainer.innerHTML = adultHTML;
-
-            // Generate Flex Container for Child Section
-            const childContainer = document.getElementById('childGridContainer');
-            let childHTML = '';
-            const childGraves = MOCK_DB.filter(g => g.section === 'kanak-kanak');
-            childGraves.forEach(grave => {
-                const styleClass = getGraveStyles(grave);
-                childHTML += `
-                    <button id="grave-${grave.id}" 
-                            class="grave-slot w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center font-bold text-sm sm:text-base rounded-md border shadow-sm ${styleClass}"
-                            onclick="handleGraveClick('${grave.id}')"
-                            title="Lot: ${grave.lotNumber}\nStatus: ${grave.status.replace('_', ' ')}">
-                        ${grave.col}
-                    </button>
-                `;
-            });
-            // Add the arrow icon at the end like the image
-            childHTML += `<div class="w-10 flex items-center justify-center text-green-700"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></div>`
-            
-            childContainer.innerHTML = childHTML;
+    });
+    // lot di luar julat (jaga-jaga) tetap dimasukkan
+    Object.keys(lotMap).forEach(code => {
+        if (!GRAVES[code]) {
+            const m = code.match(/^([LPK])(\d+)$/);
+            GRAVES[code] = { code, sect: m[1], num: +m[2], records: lotMap[code] };
         }
+    });
+}
 
-        // --- INTERACTION LOGIC (Preserved from previous) ---
-        function handleSearch() {
-            const query = document.getElementById('searchInput').value.toLowerCase().trim();
-            const suggestionsBox = document.getElementById('searchSuggestions');
-            
-            if (query.length === 0) {
-                suggestionsBox.classList.add('hidden');
-                clearHighlight();
-                return;
-            }
+/* =========================================================================
+   4. RENDER
+   ========================================================================= */
+const SECT_LABEL = { L: 'Lelaki', P: 'Perempuan', K: 'Kanak-kanak' };
 
-            const results = MOCK_DB.filter(grave => 
-                grave.status === 'telah_digunakan' && grave.record && grave.record.name.toLowerCase().includes(query)
-            );
+function slotClass(g) {
+    if (g.records.length) return 'bg-[#e2e8f0] border-gray-400 text-gray-800';
+    if (g.sect === 'L') return 'bg-[#cbe2fa] border-[#a2c8f0] text-[#004085]';
+    if (g.sect === 'P') return 'bg-[#ffc8db] border-[#f0a6c2] text-[#721c24]';
+    return 'bg-[#ffe180] border-[#f0c862] text-gray-800';
+}
 
-            if (results.length > 0) {
-                let html = '';
-                results.forEach(grave => {
-                    html += `
-                        <button class="w-full text-left px-4 py-3 hover:bg-green-50 border-b border-gray-100 last:border-0 transition-colors"
-                                onclick="selectSearchResult('${grave.id}')">
-                            <p class="font-semibold text-gray-800">${grave.record.name}</p>
-                            <p class="text-sm text-gray-500">${grave.lotNumber}</p>
-                        </button>
-                    `;
-                });
-                suggestionsBox.innerHTML = html;
-            } else {
-                suggestionsBox.innerHTML = `<div class="p-4 text-center text-gray-500">Tiada rekod dijumpai.</div>`;
-            }
-            suggestionsBox.classList.remove('hidden');
+function renderSection(sect) {
+    const perRow = CONFIG.LOT_PER_ROW[sect];
+    const total  = SECTION_SIZE[sect];
+    const el     = document.getElementById('grid' + sect);
+
+    let used = 0;
+    let html = '<div class="grid gap-1 items-stretch" style="grid-template-columns:auto repeat(' + perRow + ',minmax(2.25rem,1fr));min-width:' + (perRow * 3 + 4) + 'rem">';
+
+    html += '<div></div>';
+    for (let c = 1; c <= perRow; c++)
+        html += '<div class="text-center font-bold text-gray-500 text-[10px] sm:text-xs py-1.5 bg-gray-100 border border-gray-200 rounded-sm">' + c + '</div>';
+
+    for (let start = 1; start <= total; start += perRow) {
+        const end = Math.min(start + perRow - 1, total);
+        html += '<div class="flex items-center justify-end pr-2 font-bold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">' + sect + start + '&ndash;' + end + '</div>';
+
+        for (let n = start; n <= end; n++) {
+            const g = GRAVES[sect + n];
+            if (!g) { html += '<div></div>'; continue; }
+            if (g.records.length) used++;
+            const nm = g.records.length ? g.records[0].nama : 'Kosong';
+            html += '<button id="grave-' + g.code + '" data-sect="' + sect + '" data-used="' + (g.records.length ? 1 : 0) + '"' +
+                    ' class="grave-slot relative w-full aspect-square flex items-center justify-center font-bold text-[10px] sm:text-xs rounded-[3px] border shadow-sm ' + slotClass(g) + '"' +
+                    ' onclick="handleGraveClick(\'' + g.code + '\')"' +
+                    ' title="Lot ' + g.code + ' (' + SECT_LABEL[sect] + ')&#10;' + esc(nm) + '">' + n + '</button>';
         }
+        for (let f = end + 1; f < start + perRow; f++) html += '<div></div>';
+    }
+    html += '</div>';
+    el.innerHTML = html;
 
-        function selectSearchResult(graveId) {
-            const grave = MOCK_DB.find(g => g.id === graveId);
-            if(!grave) return;
+    document.getElementById('count' + sect).textContent = used + ' / ' + total + ' digunakan';
+}
 
-            document.getElementById('searchInput').value = grave.record.name;
-            document.getElementById('searchSuggestions').classList.add('hidden');
-            
-            applyHighlight(graveId);
-            document.getElementById('searchInput').blur();
+function render() {
+    ['L','P','K'].forEach(renderSection);
 
-            setTimeout(() => {
-                const el = document.getElementById(`grave-${graveId}`);
-                const container = document.getElementById('mapContainer');
-                if(el && container) {
-                    const elRect = el.getBoundingClientRect();
-                    const containerRect = container.getBoundingClientRect();
-                    const scrollLeft = el.offsetLeft - (containerRect.width / 2) + (elRect.width / 2);
-                    const scrollTop = el.offsetTop - (containerRect.height / 2) + (elRect.height / 2);
-                    container.scrollTo({ left: scrollLeft, top: scrollTop, behavior: 'smooth' });
-                }
-            }, 100);
-        }
+    // rekod tanpa lot
+    const sec = document.getElementById('noLotSection');
+    const list = document.getElementById('noLotList');
+    if (NO_LOT_RECORDS.length) {
+        sec.hidden = false;
+        list.innerHTML = NO_LOT_RECORDS.map((r, i) =>
+            '<button onclick="openNoLot(' + i + ')" class="px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg text-xs sm:text-sm font-semibold text-amber-800 hover:bg-amber-100 transition-colors">' +
+            esc(r.nama) + '</button>').join('');
+    } else { sec.hidden = true; }
 
-        function handleGraveClick(graveId) {
-            applyHighlight(graveId);
-            openModal(graveId);
-        }
+    const totalUsed = Object.values(GRAVES).filter(g => g.records.length).length;
+    document.getElementById('statSync').innerHTML =
+        '<span class="w-2 h-2 rounded-full bg-green-500"></span> Data langsung &middot; ' +
+        '<strong>' + totalUsed + '</strong> pusara berdaftar' +
+        (NO_LOT_RECORDS.length ? ' &middot; <strong>' + NO_LOT_RECORDS.length + '</strong> rekod tiada lot' : '');
 
-        function applyHighlight(graveId) {
-            clearHighlight();
-            currentHighlightedId = graveId;
-            const el = document.getElementById(`grave-${graveId}`);
-            if(el) el.classList.add('grave-highlighted');
-        }
+    applyFilters();
+}
 
-        function clearHighlight() {
-            if(currentHighlightedId) {
-                const el = document.getElementById(`grave-${currentHighlightedId}`);
-                if(el) el.classList.remove('grave-highlighted');
-                currentHighlightedId = null;
-            }
-        }
+/* =========================================================================
+   5. CARIAN & TAPISAN
+   ========================================================================= */
+function focusSearch() { document.getElementById('searchInput').focus(); }
 
-        function openModal(graveId) {
-            const grave = MOCK_DB.find(g => g.id === graveId);
-            if(!grave) return;
+function handleSearch(jump) {
+    const q = document.getElementById('searchInput').value.toLowerCase().trim();
+    const box = document.getElementById('searchSuggestions');
 
-            const modalBody = document.getElementById('modalBody');
-            
-            let html = `
-                <div class="mb-6 pb-4 border-b border-gray-100">
-                    <p class="text-sm text-gray-500 uppercase font-semibold tracking-wider">LOKASI KUBUR</p>
-                    <p class="text-2xl font-bold text-gray-900 mt-1">${grave.lotNumber}</p>
-                    <p class="text-sm text-gray-600 mt-1 capitalize">Kategori: ${grave.section} ${grave.section === 'dewasa' ? `(${grave.genderAssigned})` : ''}</p>
-                </div>
-            `;
+    if (q.length < 2) { box.classList.add('hidden'); clearHighlight(); return; }
 
-            if (grave.status === 'kosong') {
-                html += `<div class="text-center py-8"><h4 class="text-xl font-bold text-gray-700">Lot Ini Kosong</h4></div>`;
-            } else if (grave.status === 'tempahan') {
-                html += `<div class="text-center py-8"><h4 class="text-xl font-bold text-[#d97706]">Telah Ditempah</h4></div>`;
-            } else if (grave.record) {
-                const dateStr = new Date(grave.record.dateOfDeath).toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' });
-                html += `
-                    <div class="space-y-5">
-                        <div>
-                            <p class="text-sm text-gray-500 font-semibold mb-1">Nama Penuh</p>
-                            <p class="text-xl font-bold text-gray-900">${grave.record.name}</p>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                <p class="text-sm text-gray-500 font-semibold">Tarikh Meninggal</p>
-                                <p class="text-lg font-bold text-gray-800 mt-1">${dateStr}</p>
-                            </div>
-                            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                <p class="text-sm text-gray-500 font-semibold">Jantina & Umur</p>
-                                <p class="text-lg font-bold text-gray-800 mt-1 capitalize">${grave.record.gender}, ${grave.record.age} thn</p>
-                            </div>
-                        </div>
-                        ${grave.record.notes ? `
-                            <div class="mt-4 p-4 bg-green-50 rounded-xl border border-green-100 text-green-800">
-                                <p class="text-sm font-semibold mb-1">Nota Tambahan</p>
-                                <p class="text-base">${grave.record.notes}</p>
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            }
+    const hits = [];
+    Object.values(GRAVES).forEach(g => {
+        g.records.forEach(r => { if (r.nama.toLowerCase().includes(q)) hits.push({ code: g.code, rec: r }); });
+    });
+    NO_LOT_RECORDS.forEach((r, i) => { if (r.nama.toLowerCase().includes(q)) hits.push({ code: null, rec: r, noLotIndex: i }); });
 
-            modalBody.innerHTML = html;
-            modalBody.scrollTop = 0; 
-            document.getElementById('infoModal').classList.remove('hidden');
-        }
+    if (!hits.length) {
+        box.innerHTML = '<div class="p-4 text-center text-gray-500 text-sm">Tiada rekod dijumpai.</div>';
+    } else {
+        box.innerHTML = hits.slice(0, 30).map(h =>
+            '<button class="w-full text-left px-4 py-3 hover:bg-green-50 border-b border-gray-100 last:border-0 transition-colors" ' +
+            'onclick="' + (h.code ? "selectResult('" + h.code + "')" : 'openNoLot(' + h.noLotIndex + ')') + '">' +
+            '<p class="font-semibold text-gray-800 text-sm">' + esc(h.rec.nama) + '</p>' +
+            '<p class="text-xs text-gray-500 mt-0.5">' + (h.code ? 'Lot ' + h.code + ' &middot; ' + SECT_LABEL[h.code[0]] : 'Tiada nombor lot') + '</p>' +
+            '</button>').join('');
+    }
+    box.classList.remove('hidden');
 
-        function closeModal() {
-            document.getElementById('infoModal').classList.add('hidden');
-            if(document.getElementById('searchInput').value === '') clearHighlight();
-        }
+    if (jump && hits.length === 1 && hits[0].code) selectResult(hits[0].code);
+}
 
-        document.addEventListener('click', function(event) {
-            const searchContainer = document.querySelector('.relative.w-full');
-            const suggestionsBox = document.getElementById('searchSuggestions');
-            if (searchContainer && !searchContainer.contains(event.target)) {
-                if(suggestionsBox) suggestionsBox.classList.add('hidden');
-            }
+function selectResult(code) {
+    document.getElementById('searchSuggestions').classList.add('hidden');
+    document.getElementById('searchInput').blur();
+    applyHighlight(code);
+    scrollToGrave(code);
+    openModal(code);
+}
+
+function scrollToGrave(code) {
+    setTimeout(() => {
+        const el = document.getElementById('grave-' + code);
+        const box = document.getElementById('mapContainer');
+        if (!el || !box) return;
+        box.scrollTo({
+            left: el.offsetLeft - box.clientWidth / 2 + el.offsetWidth / 2,
+            top:  el.offsetTop  - box.clientHeight / 2 + el.offsetHeight / 2,
+            behavior: 'smooth'
         });
+    }, 60);
+}
 
-        window.onload = initGrid;
-    </script>
+function applyFilters() {
+    const blok   = document.getElementById('filterBlok').value;
+    const status = document.getElementById('filterStatus').value;
+
+    document.querySelectorAll('section[data-sect]').forEach(s => {
+        s.hidden = !(blok === 'semua' || blok === s.dataset.sect);
+    });
+
+    document.querySelectorAll('.grave-slot').forEach(b => {
+        const isUsed = b.dataset.used === '1';
+        const ok = status === 'semua' || (status === 'digunakan' ? isUsed : !isUsed);
+        b.style.opacity    = ok ? '' : '.18';
+        b.style.pointerEvents = ok ? '' : 'none';
+    });
+}
+
+/* =========================================================================
+   6. HIGHLIGHT & MODAL
+   ========================================================================= */
+function handleGraveClick(code) { applyHighlight(code); openModal(code); }
+
+function applyHighlight(code) {
+    clearHighlight();
+    currentHighlightedId = code;
+    const el = document.getElementById('grave-' + code);
+    if (el) el.classList.add('grave-highlighted');
+}
+function clearHighlight() {
+    if (!currentHighlightedId) return;
+    const el = document.getElementById('grave-' + currentHighlightedId);
+    if (el) el.classList.remove('grave-highlighted');
+    currentHighlightedId = null;
+}
+
+function recordCard(r) {
+    return '<div class="space-y-4">' +
+        '<div><p class="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Nama Penuh</p>' +
+            '<p class="text-xl font-bold text-gray-900 leading-snug">' + esc(r.nama) + '</p></div>' +
+        '<div class="grid grid-cols-2 gap-3">' +
+            '<div class="bg-gray-50 p-4 rounded-xl border border-gray-100">' +
+                '<p class="text-xs text-gray-500 font-semibold uppercase">Tarikh Kematian</p>' +
+                '<p class="text-base font-bold text-gray-800 mt-1">' + esc(formatTarikh(r.tarikhMati)) + '</p></div>' +
+            '<div class="bg-gray-50 p-4 rounded-xl border border-gray-100">' +
+                '<p class="text-xs text-gray-500 font-semibold uppercase">Jantina</p>' +
+                '<p class="text-base font-bold text-gray-800 mt-1">' + (r.jantina || '<span class="text-gray-400 font-medium">Tidak dinyatakan</span>') + '</p></div>' +
+        '</div></div>';
+}
+
+function openModal(code) {
+    const g = GRAVES[code];
+    if (!g) return;
+
+    document.getElementById('modalTitle').textContent = 'Maklumat Pusara';
+    let html =
+        '<div class="mb-6 pb-4 border-b border-gray-100">' +
+            '<p class="text-xs text-gray-500 uppercase font-semibold tracking-wider">Lokasi Kubur</p>' +
+            '<p class="text-2xl font-bold text-gray-900 mt-1">Lot ' + esc(g.code) + '</p>' +
+            '<p class="text-sm text-gray-600 mt-1">Bahagian ' + SECT_LABEL[g.sect] + ' &middot; Blok A</p>' +
+        '</div>';
+
+    if (!g.records.length) {
+        html += '<div class="text-center py-10">' +
+                '<svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"/></svg>' +
+                '<h4 class="text-lg font-bold text-gray-700">Lot Ini Kosong</h4>' +
+                '<p class="text-sm text-gray-500 mt-1">Tiada rekod pengebumian didaftarkan.</p></div>';
+    } else {
+        if (g.records.length > 1)
+            html += '<p class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">' +
+                    g.records.length + ' rekod didaftarkan pada lot ini.</p>';
+        html += g.records.map(recordCard).join('<hr class="my-5 border-gray-100">');
+    }
+
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modalBody').scrollTop = 0;
+    document.getElementById('infoModal').classList.remove('hidden');
+}
+
+function openNoLot(i) {
+    const r = NO_LOT_RECORDS[i];
+    if (!r) return;
+    document.getElementById('searchSuggestions').classList.add('hidden');
+    document.getElementById('modalTitle').textContent = 'Maklumat Pusara';
+    document.getElementById('modalBody').innerHTML =
+        '<div class="mb-6 pb-4 border-b border-gray-100">' +
+            '<p class="text-xs text-gray-500 uppercase font-semibold tracking-wider">Lokasi Kubur</p>' +
+            '<p class="text-xl font-bold text-amber-700 mt-1">Tiada nombor lot direkodkan</p>' +
+            '<p class="text-sm text-gray-600 mt-1">Sila hubungi pejabat masjid untuk pengesahan lokasi.</p>' +
+        '</div>' + recordCard(r);
+    document.getElementById('modalBody').scrollTop = 0;
+    document.getElementById('infoModal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('infoModal').classList.add('hidden');
+    if (!document.getElementById('searchInput').value) clearHighlight();
+}
+
+/* =========================================================================
+   7. DIREKTORI & INFO
+   ========================================================================= */
+function openDirectory() {
+    const rows = [];
+    Object.values(GRAVES).forEach(g => g.records.forEach(r => rows.push({ code: g.code, rec: r })));
+    NO_LOT_RECORDS.forEach((r, i) => rows.push({ code: null, rec: r, noLotIndex: i }));
+    rows.sort((a, b) => a.rec.nama.localeCompare(b.rec.nama, 'ms'));
+
+    document.getElementById('modalTitle').textContent = 'Direktori Pusara (' + rows.length + ')';
+    document.getElementById('modalBody').innerHTML = rows.length
+        ? '<div class="divide-y divide-gray-100">' + rows.map(h =>
+            '<button class="w-full text-left py-3 hover:bg-green-50 px-2 rounded transition-colors" onclick="closeModal();' +
+            (h.code ? "selectResult('" + h.code + "')" : 'openNoLot(' + h.noLotIndex + ')') + '">' +
+            '<p class="font-semibold text-gray-800 text-sm">' + esc(h.rec.nama) + '</p>' +
+            '<p class="text-xs text-gray-500 mt-0.5">' + (h.code ? 'Lot ' + h.code + ' &middot; ' + SECT_LABEL[h.code[0]] : 'Tiada nombor lot') +
+            ' &middot; ' + esc(formatTarikh(h.rec.tarikhMati)) + '</p></button>').join('') + '</div>'
+        : '<p class="text-center text-gray-500 py-10">Tiada rekod.</p>';
+    document.getElementById('infoModal').classList.remove('hidden');
+}
+
+function openInfo() {
+    document.getElementById('modalTitle').textContent = 'Info eMaqbarah';
+    document.getElementById('modalBody').innerHTML =
+        '<div class="space-y-4 text-sm text-gray-700 leading-relaxed">' +
+        '<p><strong>eMaqbarah</strong> ialah peta interaktif tanah perkuburan Masjid Al-Rasyidin. Ia membantu orang awam mengetahui kedudukan pusara.</p>' +
+        '<div><p class="font-bold text-gray-900 mb-1">Cara guna</p><ul class="list-disc pl-5 space-y-1">' +
+        '<li>Taip nama si mati dalam ruang carian, kemudian pilih daripada senarai.</li>' +
+        '<li>Peta akan melompat ke lot berkenaan dan menyerlahkannya dengan warna hijau.</li>' +
+        '<li>Klik mana-mana petak untuk melihat maklumat lot tersebut.</li></ul></div>' +
+        '<div><p class="font-bold text-gray-900 mb-1">Kod lot</p><p><code class="bg-gray-100 px-1.5 py-0.5 rounded">L</code> = bahagian lelaki, ' +
+        '<code class="bg-gray-100 px-1.5 py-0.5 rounded">P</code> = bahagian perempuan, ' +
+        '<code class="bg-gray-100 px-1.5 py-0.5 rounded">K</code> = kanak-kanak. Contoh <code class="bg-gray-100 px-1.5 py-0.5 rounded">L40</code> ialah lot ke-40 bahagian lelaki.</p></div>' +
+        '<div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3"><p class="font-bold text-emerald-900 mb-1">Privasi</p>' +
+        '<p class="text-emerald-800">Paparan awam hanya menunjukkan nama si mati, tarikh kematian dan lokasi lot. Maklumat waris, nombor telefon, alamat dan resit bayaran tidak dipaparkan di sini.</p></div>' +
+        '<p class="text-xs text-gray-500 pt-2 border-t border-gray-100">Ada maklumat tidak tepat? Sila hubungi pejabat masjid untuk pembetulan rekod.</p>' +
+        '</div>';
+    document.getElementById('infoModal').classList.remove('hidden');
+}
+
+/* =========================================================================
+   8. INIT
+   ========================================================================= */
+document.addEventListener('click', e => {
+    const wrap = document.getElementById('searchWrap');
+    if (wrap && !wrap.contains(e.target)) document.getElementById('searchSuggestions').classList.add('hidden');
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+window.addEventListener('DOMContentLoaded', loadData);
+</script>
 </body>
 </html>
