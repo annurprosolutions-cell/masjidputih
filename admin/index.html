@@ -436,12 +436,34 @@
         document.getElementById('currentYear').textContent = new Date().getFullYear();
 
         // ⚠️ SILA MASUKKAN URL APP SCRIPT ANDA DI SINI
-        const APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbxViX6YuU6OhDyvdJ4_PwBz9Fo8FuhekjjKhDgQ28JmkE-kNKa_MSlVxTFrLTdngfNakA/exec"; 
+        const APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbxlzvM588yfPUyU3Pefhfg5gb9fBL5b1dAjhHZMv3RX7D-MZAXP-aZDJVKkHyBR43KxZg/exec";
+
+        // Token sesi. Sengaja dalam memori sahaja - bukan localStorage.
+        // Tutup tab = log keluar. Trade-off yang berbaloi untuk sistem ini.
+        let SESSION_TOKEN = null;
+
+        /**
+         * Semua panggilan admin lalu sini. Token disertakan automatik.
+         * Server tetap validate token setiap kali - ini bukan security boundary,
+         * cuma cara elak terlupa hantar token.
+         */
+        async function panggilAPI(payload) {
+            const res = await fetch(APPSCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(Object.assign({ token: SESSION_TOKEN }, payload))
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const hasil = await res.json();
+            if (!hasil.ok && hasil.code === 'AUTH') {
+                alert('Sesi anda telah tamat. Sila log masuk semula.');
+                logout();
+                throw new Error('AUTH');
+            }
+            return hasil;
+        }
 
         // Google Sheets CSV URLs
-        const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBehO5MSacK0IxmwS_KfOaM2xAsvaIeIN8bXc1Sblfb8chAyV6i9_TGWpF5SRIrdvnd1TnyRdT-5NG/pub?output=csv";
-        const csvSettingsUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBehO5MSacK0IxmwS_KfOaM2xAsvaIeIN8bXc1Sblfb8chAyV6i9_TGWpF5SRIrdvnd1TnyRdT-5NG/pub?gid=1589225306&single=true&output=csv";
-
         let globalData = [];
         let globalSettingsData = [];
         let chartInstances = {};
@@ -487,34 +509,30 @@
 
         // Load Both Main Records and Settings Table
         async function loadAllData() {
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            document.getElementById('loadingText').textContent = "Memuat turun pangkalan data...";
-            setTimeout(() => { document.getElementById('loadingOverlay').style.opacity = '1'; }, 10);
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) { overlay.style.display = 'flex'; overlay.style.opacity = '1'; }
+            const txt = document.getElementById('loadingText');
+            if (txt) txt.textContent = "Memuat turun data...";
 
             try {
-                const [mainData, settingsData] = await Promise.all([
-                    fetchCSVData(csvUrl),
-                    fetchCSVData(csvSettingsUrl)
-                ]);
+                const hasil = await panggilAPI({ action: 'GET_ALL' });
+                if (!hasil.ok) throw new Error(hasil.error || 'Gagal memuat data');
 
-                globalData = mainData;
-                globalSettingsData = settingsData;
-                currentFilteredData = [...globalData];
+                allData      = hasil.data  || [];
+                settingsData = hasil.harga || [];
 
-                processData(globalData);
-                
-                // Gunakan sorting secara default (Tarikh Terkini ke Lama) dan paparkan jadual
-                updateSortButtonsUI();
-                sortAndRenderData();
-                
-                renderSettingsTable(globalSettingsData);
+                if (typeof renderTable === 'function')     renderTable();
+                if (typeof renderSettings === 'function')  renderSettings();
+                if (typeof updateDashboard === 'function') updateDashboard();
+                if (typeof applyFilters === 'function')    applyFilters();
 
-            } catch (error) {
-                console.error("Ralat mengambil data:", error);
-                alert("Gagal mengambil data dari pangkalan data. Sila semak sambungan internet anda.");
+            } catch (err) {
+                if (err.message !== 'AUTH') {
+                    console.error(err);
+                    alert('Gagal memuat turun data: ' + err.message);
+                }
             } finally {
-                document.getElementById('loadingOverlay').style.opacity = '0';
-                setTimeout(() => { document.getElementById('loadingOverlay').style.display = 'none'; }, 300);
+                if (overlay) overlay.style.display = 'none';
             }
         }
 
@@ -850,30 +868,23 @@
             const rm = document.getElementById('settingRm').value;
             const oldPerkara = document.getElementById('settingOldPerkara').value;
 
-            if(APPSCRIPT_URL === "SILA_GANTI_URL_MACRO_APPSCRIPT_DISINI" || APPSCRIPT_URL === "") {
-                alert("URL AppScript belum dikonfigurasi."); return;
-            }
-
             const btn = document.getElementById('btnSettingSubmit');
             btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Menyimpan...';
             btn.disabled = true;
 
-            const payload = {
-                action: action,
-                perkara: perkara,
-                rm: rm,
-                oldPerkara: oldPerkara
-            };
+            // Nama action Code.gs guna HURUF BESAR
+            const petaAction = { tambah: 'ADD_PERKARA', add: 'ADD_PERKARA',
+                                 edit: 'EDIT_PERKARA', update: 'EDIT_PERKARA' };
 
             try {
-                const response = await fetch(APPSCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
+                const result = await panggilAPI({
+                    action:     petaAction[String(action).toLowerCase()] || 'ADD_PERKARA',
+                    perkara:    perkara,
+                    rm:         rm,
+                    oldPerkara: oldPerkara
                 });
-                const result = await response.json();
-                
-                if(result.result === "success") {
+
+                if(result.ok) {
                     alert("Berjaya! Senarai perkara telah dikemas kini.");
                     closeSettingModal();
                     loadAllData(); // Refresh all to reflect new settings immediately
@@ -896,20 +907,13 @@
             document.getElementById('loadingText').textContent = "Memadam rekod...";
             setTimeout(() => { document.getElementById('loadingOverlay').style.opacity = '1'; }, 10);
 
-            const payload = {
-                action: "delete_perkara",
-                perkara: perkara
-            };
-
             try {
-                const response = await fetch(APPSCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
+                const result = await panggilAPI({
+                    action:  'DELETE_PERKARA',
+                    perkara: perkara
                 });
-                const result = await response.json();
-                
-                if(result.result === "success") {
+
+                if(result.ok) {
                     alert("Perkara berjaya dipadam!");
                     loadAllData(); // Refresh immediately to show removed item
                 } else {
@@ -1092,10 +1096,6 @@
 
         async function submitUpdate() {
             // Semak jika URL AppScript belum ditukar
-            if(APPSCRIPT_URL === "SILA_GANTI_URL_MACRO_APPSCRIPT_DISINI" || APPSCRIPT_URL === "") {
-                alert("Sila masukkan URL Apps Script (Macro) pada bahagian kod HTML (baris 373) terlebih dahulu.");
-                return;
-            }
 
             const btn = document.getElementById('btnSubmitUpdate');
             
@@ -1113,7 +1113,7 @@
 
             // Himpunkan semua data teks ke dalam payload
             const payload = {
-                action: "update",
+                action: "UPDATE",
                 refNo: refNo,
                 namaSimati: document.getElementById('editNamaSimati').value,
                 noKematian: document.getElementById('editNoKematian').value,
@@ -1138,16 +1138,10 @@
                 if(jpnFile) payload.jpnBase64 = await fileToBase64(jpnFile);
                 if(resitFile) payload.resitBase64 = await fileToBase64(resitFile);
 
-                // Send to Google Apps Script
-                const response = await fetch(APPSCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
-                });
-                
-                const result = await response.json();
-                
-                if(result.result === "success") {
+                // Hantar ke Apps Script (token disertakan oleh panggilAPI)
+                const result = await panggilAPI(payload);
+
+                if(result.ok) {
                     alert("Berjaya! Maklumat dan dokumen telah dikemaskini di dalam pangkalan data.");
                     closeModal(); // Tutup tetingkap butiran
                     loadAllData();  // Tarik semua data semula
@@ -1255,45 +1249,69 @@
         }
 
         // --- SISTEM LOG MASUK & LOG KELUAR (LOGIN/LOGOUT LOGIC) ---
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
-            const id = document.getElementById('loginId').value;
-            const pwd = document.getElementById('loginPwd').value;
             const errorDiv = document.getElementById('loginError');
+            const errorSpan = errorDiv.querySelector('span');
+            const btn = e.target.querySelector('button[type=submit]');
+            const asalBtn = btn.innerHTML;
 
-            if (id === 'masjidputih2020@gmail.com' && pwd === 'ajkmqsa123') {
+            btn.disabled = true;
+            btn.innerHTML = 'Menyemak... <i class="fas fa-circle-notch fa-spin"></i>';
+
+            try {
+                // Kata laluan TIDAK disemak di sini. Server yang tentukan.
+                const res = await fetch(APPSCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action:   'LOGIN',
+                        email:    document.getElementById('loginId').value,
+                        password: document.getElementById('loginPwd').value
+                    })
+                });
+                const hasil = await res.json();
+
+                if (!hasil.ok) {
+                    errorSpan.textContent = hasil.error || 'Log masuk gagal.';
+                    errorDiv.classList.remove('hidden');
+                    return;
+                }
+
+                SESSION_TOKEN = hasil.token;
+                document.getElementById('loginPwd').value = '';   // jangan tinggal dalam DOM
                 errorDiv.classList.add('hidden');
-                
+
                 document.getElementById('loginPage').classList.add('hidden');
-                
                 const appContent = document.getElementById('appContent');
                 appContent.classList.remove('hidden');
                 appContent.classList.add('flex');
-                
-                // Tarik KEDUA-DUA data (Rekod Utama & Penetapan) selepas log masuk
+
                 loadAllData();
-            } else {
+
+            } catch (err) {
+                errorSpan.textContent = 'Tiada sambungan ke pelayan. Sila semak internet anda.';
                 errorDiv.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = asalBtn;
             }
         });
 
-        function logout() {
-            // Sembunyikan aplikasi utama
-            const appContent = document.getElementById('appContent');
-            appContent.classList.remove('flex');
-            appContent.classList.add('hidden');
-            
-            // Paparkan semula halaman log masuk
-            const loginPage = document.getElementById('loginPage');
-            loginPage.classList.remove('hidden');
-            
-            // Kosongkan input demi keselamatan
-            document.getElementById('loginId').value = '';
-            document.getElementById('loginPwd').value = '';
-            document.getElementById('loginError').classList.add('hidden');
-            
-            // Kembalikan paparan kepada tab dashboard sebagai default
-            switchTab('dashboard');
+        async function logout() {
+            const token = SESSION_TOKEN;
+            SESSION_TOKEN = null;
+            if (token) {
+                try {
+                    await fetch(APPSCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'LOGOUT', token: token })
+                    });
+                } catch (e) { /* revoke gagal pun teruskan logout tempatan */ }
+            }
+            // Reload = kosongkan semua data pesakit dari memori browser
+            location.reload();
         }
 
     </script>
