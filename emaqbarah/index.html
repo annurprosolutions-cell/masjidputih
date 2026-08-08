@@ -235,16 +235,8 @@
    ========================================================================= */
 
 const CONFIG = {
-    // CSV terbitan (File > Share > Publish to web) bagi sheet Resit_Jenazah (gid=2102459323)
-    CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBehO5MSacK0IxmwS_KfOaM2xAsvaIeIN8bXc1Sblfb8chAyV6i9_TGWpF5SRIrdvnd1TnyRdT-5NG/pub?gid=2102459323&single=true&output=csv",
-
-    // Nama header dalam sheet. Tukar di sini kalau header sheet berubah.
-    HEADER: {
-        nama:        "Nama Simati",
-        tarikhMati:  "Tarikh Kematian",
-        lot:         "No Lot Kubur",
-        rujukan:     "No Rujukan"
-    },
+    // Endpoint Apps Script. Hanya pulangkan nama, tarikh kematian, no lot.
+    API_URL: "https://script.google.com/macros/s/AKfycbxlzvM588yfPUyU3Pefhfg5gb9fBL5b1dAjhHZMv3RX7D-MZAXP-aZDJVKkHyBR43KxZg/exec",
 
     // --- SAIZ PETAK (fleksibel) ---
     // Grid akan auto-besar kalau database ada lot melebihi nombor minimum ini.
@@ -262,36 +254,7 @@ let SECTION_SIZE = { L: 0, P: 0, K: 0 };
 let currentHighlightedId = null;
 
 /* =========================================================================
-   1. CSV PARSER (RFC 4180 - handle petikan & baris baru dalam sel)
-   ========================================================================= */
-function parseCSV(text) {
-    text = text.replace(/^﻿/, '');       // buang BOM
-    const rows = [];
-    let row = [], field = '', inQuotes = false;
-
-    for (let i = 0; i < text.length; i++) {
-        const ch = text[i];
-
-        if (inQuotes) {
-            if (ch === '"') {
-                if (text[i + 1] === '"') { field += '"'; i++; }   // "" -> "
-                else inQuotes = false;
-            } else field += ch;
-            continue;
-        }
-
-        if (ch === '"')       { inQuotes = true; }
-        else if (ch === ',')  { row.push(field); field = ''; }
-        else if (ch === '\r') { /* abaikan */ }
-        else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-        else                  { field += ch; }
-    }
-    if (field.length || row.length) { row.push(field); rows.push(row); }
-    return rows;
-}
-
-/* =========================================================================
-   2. PENGHURAI MEDAN
+   1. PENGHURAI MEDAN
    ========================================================================= */
 
 // "LOT 40 (L40)" -> {sect:'L', num:40}   |  "P24" -> {sect:'P', num:24}  | "Tiada Lot" -> null
@@ -345,95 +308,82 @@ function esc(t) {
 }
 
 /* =========================================================================
-   3. MUAT DATA
+   2. MUAT DATA
    ========================================================================= */
 async function loadData() {
     document.getElementById('errorState').hidden = true;
     document.getElementById('loadingState').hidden = false;
 
     try {
-        const res = await fetch(CONFIG.CSV_URL + '&_cb=' + Date.now(), { cache: 'no-store' });
+        const res = await fetch(CONFIG.API_URL + '?action=peta&_cb=' + Date.now(), { cache: 'no-store' });
         if (!res.ok) throw new Error('HTTP ' + res.status);
-        buildFromCSV(await res.text());
+        const hasil = await res.json();
+        if (!hasil.ok) throw new Error(hasil.error || 'Pelayan menolak permintaan');
 
+        buildFromAPI(hasil.data || []);
         document.getElementById('loadingState').hidden = true;
         render();
+
     } catch (err) {
         document.getElementById('loadingState').hidden = true;
         document.getElementById('errorState').hidden = false;
         document.getElementById('errorMsg').textContent =
-            'Tidak dapat menghubungi Google Sheets. Pastikan sheet masih diterbitkan (Publish to web). Ralat: ' + err.message;
+            'Tidak dapat memuatkan peta kubur. Sila cuba sebentar lagi. (' + err.message + ')';
         document.getElementById('statSync').innerHTML =
             '<span class="w-2 h-2 rounded-full bg-red-500"></span> Tiada sambungan data';
     }
 }
 
-function buildFromCSV(csvText) {
-    const rows = parseCSV(csvText);
-    if (!rows.length) throw new Error('Fail CSV kosong');
-
-    const head = rows[0].map(h => h.trim());
-    const idx = {
-        nama:       head.indexOf(CONFIG.HEADER.nama),
-        tarikhMati: head.indexOf(CONFIG.HEADER.tarikhMati),
-        lot:        head.indexOf(CONFIG.HEADER.lot),
-        rujukan:    head.indexOf(CONFIG.HEADER.rujukan)
-    };
-    if (idx.nama === -1 || idx.lot === -1)
-        throw new Error('Header "' + CONFIG.HEADER.nama + '" atau "' + CONFIG.HEADER.lot + '" tidak dijumpai');
-
+function buildFromAPI(senarai) {
     ALL_RECORDS = [];
     NO_LOT_RECORDS = [];
     const maxNum = { L: 0, P: 0, K: 0 };
     const lotMap = {};
 
-    for (let i = 1; i < rows.length; i++) {
-        const r = rows[i];
-        const nama = (r[idx.nama] || '').trim();
-        if (!nama) continue;                       // langkau baris kosong / baris penomboran
+    senarai.forEach(function (item) {
+        const nama = String(item.n || '').trim();
+        if (!nama) return;
 
         const rec = {
-            nama,
-            tarikhMati: (r[idx.tarikhMati] || '').trim(),
-            lotRaw:     (r[idx.lot] || '').trim(),
-            rujukan:    idx.rujukan > -1 ? (r[idx.rujukan] || '').trim() : '',
+            nama:       nama,
+            tarikhMati: String(item.t || '').trim(),
+            lotRaw:     String(item.l || '').trim(),
             jantina:    genderFromName(nama)
         };
         ALL_RECORDS.push(rec);
 
         const lot = parseLot(rec.lotRaw);
-        if (!lot) { NO_LOT_RECORDS.push(rec); continue; }
+        if (!lot) { NO_LOT_RECORDS.push(rec); return; }
 
         rec.code = lot.sect + lot.num;
         if (lot.num > maxNum[lot.sect]) maxNum[lot.sect] = lot.num;
         (lotMap[rec.code] = lotMap[rec.code] || []).push(rec);
-    }
+    });
 
     // --- saiz grid fleksibel ---
-    ['L','P','K'].forEach(s => {
+    ['L','P','K'].forEach(function (s) {
         SECTION_SIZE[s] = CONFIG.AUTO_GROW
             ? Math.max(CONFIG.MIN_LOT[s], maxNum[s] + (maxNum[s] ? CONFIG.GROW_BUFFER : 0))
             : CONFIG.MIN_LOT[s];
     });
 
     GRAVES = {};
-    ['L','P','K'].forEach(s => {
-        for (let n = 1; n <= SECTION_SIZE[s]; n++) {
-            const code = s + n;
-            GRAVES[code] = { code, sect: s, num: n, records: lotMap[code] || [] };
+    ['L','P','K'].forEach(function (s) {
+        for (var n = 1; n <= SECTION_SIZE[s]; n++) {
+            var code = s + n;
+            GRAVES[code] = { code: code, sect: s, num: n, records: lotMap[code] || [] };
         }
     });
-    // lot di luar julat (jaga-jaga) tetap dimasukkan
-    Object.keys(lotMap).forEach(code => {
+    Object.keys(lotMap).forEach(function (code) {
         if (!GRAVES[code]) {
-            const m = code.match(/^([LPK])(\d+)$/);
-            GRAVES[code] = { code, sect: m[1], num: +m[2], records: lotMap[code] };
+            var m = code.match(/^([LPK])(\d+)$/);
+            GRAVES[code] = { code: code, sect: m[1], num: +m[2], records: lotMap[code] };
         }
     });
 }
 
 /* =========================================================================
-   4. RENDER
+   3. RENDER
    ========================================================================= */
 const SECT_LABEL = { L: 'Lelaki', P: 'Perempuan', K: 'Kanak-kanak' };
 
@@ -501,7 +451,7 @@ function render() {
 }
 
 /* =========================================================================
-   5. CARIAN & TAPISAN
+   4. CARIAN & TAPISAN
    ========================================================================= */
 function focusSearch() { document.getElementById('searchInput').focus(); }
 
@@ -570,7 +520,7 @@ function applyFilters() {
 }
 
 /* =========================================================================
-   6. HIGHLIGHT & MODAL
+   5. HIGHLIGHT & MODAL
    ========================================================================= */
 function handleGraveClick(code) { applyHighlight(code); openModal(code); }
 
@@ -651,7 +601,7 @@ function closeModal() {
 }
 
 /* =========================================================================
-   7. DIREKTORI & INFO
+   6. DIREKTORI & INFO
    ========================================================================= */
 function openDirectory() {
     const rows = [];
@@ -691,7 +641,7 @@ function openInfo() {
 }
 
 /* =========================================================================
-   8. INIT
+   7. INIT
    ========================================================================= */
 document.addEventListener('click', e => {
     const wrap = document.getElementById('searchWrap');
