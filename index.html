@@ -346,46 +346,23 @@
     </div>
 
     <script>
-        // SILA MASUKKAN URL WEB APP APPS SCRIPT ANDA DI SINI SELEPAS DEPLOY BARU
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUdHB6MaT-V2MxsprnW96JNNXNxdZPqKlPka8t1fTq9NW9DbXSnezmfobeobjIfRxT_g/exec"; 
+        // Endpoint Apps Script (satu-satunya sambungan ke pangkalan data)
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxlzvM588yfPUyU3Pefhfg5gb9fBL5b1dAjhHZMv3RX7D-MZAXP-aZDJVKkHyBR43KxZg/exec";
 
-        // URL CSV DATA GOOGLE SHEETS
-        const PAYMENT_ITEMS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBehO5MSacK0IxmwS_KfOaM2xAsvaIeIN8bXc1Sblfb8chAyV6i9_TGWpF5SRIrdvnd1TnyRdT-5NG/pub?gid=1589225306&single=true&output=csv";
-        
-        // URL CSV UNTUK NO KEMATIAN
-        const RESIT_JENAZAH_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBehO5MSacK0IxmwS_KfOaM2xAsvaIeIN8bXc1Sblfb8chAyV6i9_TGWpF5SRIrdvnd1TnyRdT-5NG/pub?gid=2102459323&single=true&output=csv";
+        /** Panggil Apps Script. Semua komunikasi lalu sini. */
+        async function panggilAPI(payload) {
+            const res = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return await res.json();
+        }
 
         let selectedItems = [];
         let savedPdfUrl = ""; // Variable untuk simpan link GDrive PDF
 
-        /* --------------------------------------------------------------
-           CSV PARSER (RFC 4180)
-           Perlu kerana medan Alamat dalam sheet mengandungi baris baru
-           di dalam petikan. Pemisahan ikut "\n" akan memecahkan baris
-           dan menyebabkan No Kematian / No Rujukan salah dikira.
-           -------------------------------------------------------------- */
-        function parseCSV(text) {
-            text = text.replace(/^\ufeff/, '');
-            const rows = [];
-            let row = [], field = '', inQuotes = false;
-            for (let i = 0; i < text.length; i++) {
-                const ch = text[i];
-                if (inQuotes) {
-                    if (ch === '"') {
-                        if (text[i + 1] === '"') { field += '"'; i++; }
-                        else inQuotes = false;
-                    } else field += ch;
-                    continue;
-                }
-                if (ch === '"')       { inQuotes = true; }
-                else if (ch === ',')  { row.push(field); field = ''; }
-                else if (ch === '\r') { /* abaikan */ }
-                else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-                else                  { field += ch; }
-            }
-            if (field.length || row.length) { row.push(field); rows.push(row); }
-            return rows;
-        }
 
         // Fetch Payment Items on Page Load
         window.addEventListener('DOMContentLoaded', () => {
@@ -396,49 +373,43 @@
         async function fetchPaymentItems() {
             const container = document.getElementById('paymentItemsContainer');
             try {
-                const response = await fetch(PAYMENT_ITEMS_CSV_URL);
-                if (!response.ok) throw new Error('Network response error');
-                
-                const csvText = await response.text();
-                const rows = parseCSV(csvText);
-                
-                container.innerHTML = ''; // Buang teks loading
+                const hasil = await panggilAPI({ action: 'GET_HARGA' });
+                if (!hasil.ok) throw new Error(hasil.error || 'Gagal');
 
-                // Mula dari baris 1 (skip header pada baris 0)
-                for (let i = 1; i < rows.length; i++) {
-                    const values = rows[i];
-                    if (!values || !values.join('').trim()) continue;
+                container.innerHTML = '';
+                hasil.data.forEach(function (item) {
+                    const perkara = String(item.perkara || '').trim();
+                    if (!perkara) return;
 
-                    if (values.length >= 2) {
-                        const perkara = values[0].trim();
-                        const rawRmText = values[1].trim();
-                        
-                        let rm = 0;
-                        let isPercuma = rawRmText.toLowerCase().includes('percuma');
-                        
-                        if (!isPercuma) {
-                            const rmText = rawRmText.replace(/[^0-9.]/g, '').trim();
-                            rm = parseFloat(rmText);
-                        }
-                        
-                        if (perkara && (isPercuma || !isNaN(rm))) {
-                            const displayPrice = isPercuma ? 'Percuma' : `RM${rm.toFixed(2)}`;
-                            const label = document.createElement('label');
-                            label.className = 'flex items-center space-x-3 bg-white p-3 border rounded-lg cursor-pointer hover:bg-emerald-50 transition';
-                            label.innerHTML = `
-                                <input type="checkbox" value="${perkara}" data-price="${rm}" data-percuma="${isPercuma}" onchange="toggleItem(this)" class="w-5 h-5 md:w-4 md:h-4 text-emerald-600 rounded">
-                                <span class="text-sm font-medium text-gray-700">${perkara} (${displayPrice})</span>
-                            `;
-                            container.appendChild(label);
-                        }
-                    }
-                }
-                
-                // Jika tiada data selepas dibaca
-                if (container.innerHTML === '') {
+                    const raw       = String(item.rm || '').trim();
+                    const isPercuma = raw.toLowerCase().indexOf('percuma') > -1;
+                    const rm        = isPercuma ? 0 : parseFloat(raw.replace(/[^0-9.]/g, ''));
+                    if (!isPercuma && isNaN(rm)) return;
+
+                    const label = document.createElement('label');
+                    label.className = 'flex items-center space-x-3 bg-white p-3 border rounded-lg cursor-pointer hover:bg-emerald-50 transition';
+
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.value = perkara;
+                    cb.dataset.price = rm;
+                    cb.dataset.percuma = isPercuma;
+                    cb.className = 'w-5 h-5 md:w-4 md:h-4 text-emerald-600 rounded';
+                    cb.onchange = function () { toggleItem(this); };
+
+                    const span = document.createElement('span');
+                    span.className = 'text-sm font-medium text-gray-700';
+                    // textContent, bukan innerHTML - elak XSS dari data Sheet
+                    span.textContent = perkara + ' (' + (isPercuma ? 'Percuma' : 'RM' + rm.toFixed(2)) + ')';
+
+                    label.appendChild(cb);
+                    label.appendChild(span);
+                    container.appendChild(label);
+                });
+
+                if (!container.innerHTML) {
                     container.innerHTML = '<p class="text-xs text-red-500 col-span-3">Tiada rekod bayaran dijumpai.</p>';
                 }
-                
             } catch (error) {
                 console.error("Ralat muat turun harga:", error);
                 container.innerHTML = '<p class="text-xs text-red-500 col-span-3">Gagal memuat turun senarai. Sila semak pautan internet anda.</p>';
@@ -446,65 +417,26 @@
         }
 
         async function fetchLatestSequences() {
-            const inputFieldKematian = document.getElementById('inputNoKematian');
-            const refNoElement = document.getElementById('refNo');
-            
-            inputFieldKematian.placeholder = "Memuat turun...";
-            refNoElement.innerText = "Memuat turun...";
-            
+            const inputKematian = document.getElementById('inputNoKematian');
+            const refNoElement  = document.getElementById('refNo');
+
+            inputKematian.placeholder = "Memuat turun...";
+            refNoElement.innerText    = "Memuat turun...";
+
             try {
-                const response = await fetch(RESIT_JENAZAH_CSV_URL);
-                if (!response.ok) throw new Error('Network response error');
-                
-                const csvText = await response.text();
-                const rows = parseCSV(csvText);
-                
-                let maxNoKematian = 0;
-                let maxRefSeq = 0;
-                const currentYear = new Date().getFullYear();
-                const refPrefix = `MJR-${currentYear}-`;
+                const hasil = await panggilAPI({ action: 'GET_NEXT' });
+                if (!hasil.ok) throw new Error(hasil.error || 'Gagal');
 
-                for (let i = 1; i < rows.length; i++) {
-                    const values = rows[i];
-                    if (!values || !values.join('').trim()) continue;
+                // Paparan sahaja. Nombor muktamad dijana semula di server semasa simpan,
+                // supaya dua borang serentak tak dapat nombor sama.
+                inputKematian.value    = hasil.noKematian;
+                refNoElement.innerText = hasil.noRujukan;
+                updatePreview();
 
-                    // 1. Semak No Rujukan (Column B / Index 1)
-                    if (values.length > 1) {
-                        const noRujukanStr = values[1].trim();
-                        // Hanya semak rujukan untuk tahun semasa
-                        if (noRujukanStr.startsWith(refPrefix)) {
-                            const seqStr = noRujukanStr.replace(refPrefix, '');
-                            const seqNum = parseInt(seqStr, 10);
-                            if (!isNaN(seqNum) && seqNum > maxRefSeq) {
-                                maxRefSeq = seqNum;
-                            }
-                        }
-                    }
-
-                    // 2. Semak No Kematian (Column I / Index 8)
-                    if (values.length > 8) {
-                        const noKematianStr = values[8].trim();
-                        const num = parseInt(noKematianStr.replace(/[^0-9]/g, ''), 10);
-                        if (!isNaN(num) && num > maxNoKematian) {
-                            maxNoKematian = num;
-                        }
-                    }
-                }
-                
-                // Set No Kematian baharu (+1)
-                inputFieldKematian.value = maxNoKematian > 0 ? maxNoKematian + 1 : 1;
-                
-                // Set No Rujukan baharu (+1 dan format kepada 4 digit)
-                const nextRefSeq = maxRefSeq + 1;
-                const formattedSeq = nextRefSeq.toString().padStart(4, '0');
-                refNoElement.innerText = `${refPrefix}${formattedSeq}`;
-                
-                updatePreview(); 
-                
             } catch (error) {
-                console.error("Ralat muat turun Sequence:", error);
-                inputFieldKematian.placeholder = "Gagal memuat turun. Sila isi manual.";
-                refNoElement.innerText = `MJR-${new Date().getFullYear()}-RALAT`;
+                console.error("Ralat muat turun sequence:", error);
+                inputKematian.placeholder = "Gagal memuat turun. Sila isi manual.";
+                refNoElement.innerText    = "MJR-" + new Date().getFullYear() + "-RALAT";
             }
         }
 
@@ -644,7 +576,7 @@
                 const finalLot = lotNum ? `LOT ${lotNum} (${jenis}${lotNum})` : '';
 
                 const payload = {
-                    refNo: document.getElementById('refNo').innerText,
+                    action: 'SUBMIT_RESIT',
                     namaSimati: document.getElementById('inputNamaSimati').value,
                     namaWaris: document.getElementById('inputNamaWaris').value,
                     telWaris: document.getElementById('inputTelWaris').value,
@@ -662,18 +594,17 @@
                 };
 
                 // 4. Hantar ke Google Apps Script dan tunggu respon
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
-                });
-                
-                const resultData = await response.json();
-                
-                if (resultData.result === "success") {
-                    // Dapatkan link Drive dari database
-                    savedPdfUrl = resultData.pdfUrl || ""; 
-                    alert("Maklumat dan PDF berjaya di muat naik & disimpan ke Database!");
+                const resultData = await panggilAPI(payload);
+
+                if (resultData.ok) {
+                    savedPdfUrl = resultData.pdfUrl || "";
+
+                    // Server yang menentukan nombor muktamad - kemas kini paparan
+                    if (resultData.noRujukan)  document.getElementById('refNo').innerText = resultData.noRujukan;
+                    if (resultData.noKematian) document.getElementById('inputNoKematian').value = resultData.noKematian;
+                    updatePreview();
+
+                    alert("Maklumat dan PDF berjaya dimuat naik & disimpan ke pangkalan data.\n\nNo Rujukan: " + resultData.noRujukan);
                     
                     // Tukar paparan butang selepas berjaya simpan
                     document.getElementById('btnSaveDB').classList.add('hidden');
