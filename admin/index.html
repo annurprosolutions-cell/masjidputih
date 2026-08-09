@@ -436,7 +436,7 @@
         document.getElementById('currentYear').textContent = new Date().getFullYear();
 
         // ⚠️ SILA MASUKKAN URL APP SCRIPT ANDA DI SINI
-        const APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbw3EeyTg_C16DDsJBuv0He3_gTGPPYXmY5Y67y8Ed7Ys6Xj9zVHTKhT3RZMIjcnF75row/exec";
+        const APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbyr9UTu86cljJ0MjWECGgMS0lXlME5dHGl4HASiz7VknjEqdUbtyoW5kfOh8qHuyNmxnQ/exec";
 
         // Token sesi. Sengaja dalam memori sahaja - bukan localStorage.
         // Tutup tab = log keluar. Trade-off yang berbaloi untuk sistem ini.
@@ -447,14 +447,47 @@
          * Server tetap validate token setiap kali - ini bukan security boundary,
          * cuma cara elak terlupa hantar token.
          */
+        const VERSI_DIJANGKA = '2026-08-09-d';
+
         async function panggilAPI(payload) {
-            const res = await fetch(APPSCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(Object.assign({ token: SESSION_TOKEN }, payload))
-            });
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const hasil = await res.json();
+            let res;
+            try {
+                res = await fetch(APPSCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(Object.assign({ token: SESSION_TOKEN }, payload))
+                });
+            } catch (e) {
+                // Punca paling lazim: deployment BUKAN "Anyone", jadi Google
+                // pulangkan halaman log masuk dan browser sekat kerana CORS.
+                throw new Error(
+                    'Tidak dapat menghubungi Apps Script.\n\n' +
+                    'Semak: Deploy > Manage deployments > Who has access = "Anyone".\n' +
+                    'Kalau ia "Anyone with Google account", sambungan dari laman web akan disekat.\n\n' +
+                    'Ralat teknikal: ' + e.message
+                );
+            }
+
+            if (!res.ok) throw new Error('Pelayan pulangkan HTTP ' + res.status);
+
+            const teks = await res.text();
+            let hasil;
+            try {
+                hasil = JSON.parse(teks);
+            } catch (e) {
+                // Bukan JSON = biasanya halaman log masuk Google atau ralat Apps Script
+                throw new Error(
+                    'Pelayan pulangkan HTML, bukan data.\n\n' +
+                    'Ini bermakna deployment memerlukan log masuk Google, ATAU Apps Script ' +
+                    'melontar ralat.\n\nSemak: buka URL Apps Script + "?action=ping" dalam browser.\n\n' +
+                    '100 aksara pertama: ' + teks.slice(0, 100)
+                );
+            }
+
+            if (hasil.versi && hasil.versi !== VERSI_DIJANGKA) {
+                console.warn('Versi Apps Script (' + hasil.versi + ') tidak sepadan dengan frontend (' + VERSI_DIJANGKA + '). Buat deployment versi baharu.');
+            }
+
             if (!hasil.ok && hasil.code === 'AUTH') {
                 alert('Sesi anda telah tamat. Sila log masuk semula.');
                 logout();
@@ -527,8 +560,8 @@
 
             } catch (err) {
                 if (err.message !== 'AUTH') {
-                    console.error(err);
-                    alert('Gagal memuat turun data: ' + err.message);
+                    console.error('[loadAllData]', err);
+                    alert('GAGAL MEMUAT DATA\n\n' + err.message);
                 }
             } finally {
                 if (overlay) overlay.style.display = 'none';
@@ -1289,7 +1322,8 @@
                 loadAllData();
 
             } catch (err) {
-                errorSpan.textContent = 'Tiada sambungan ke pelayan. Sila semak internet anda.';
+                console.error('[login]', err);
+                errorSpan.textContent = 'Tidak dapat menghubungi pelayan. Semak tetapan deployment Apps Script ("Who has access" mesti "Anyone"). Buka Console (F12) untuk butiran.';
                 errorDiv.classList.remove('hidden');
             } finally {
                 btn.disabled = false;
