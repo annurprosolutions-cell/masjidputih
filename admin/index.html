@@ -436,7 +436,7 @@
         document.getElementById('currentYear').textContent = new Date().getFullYear();
 
         // ⚠️ SILA MASUKKAN URL APP SCRIPT ANDA DI SINI
-        const APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfvXSIilkZ2JkIdLKyWZI6ZS28ROsSigPOdA9S_TAxhCd1xm6UB2ftABmW4St3I9CIig/exec";
+        const APPSCRIPT_URL = "https://script.google.com/macros/s/AKfycbxlzvM588yfPUyU3Pefhfg5gb9fBL5b1dAjhHZMv3RX7D-MZAXP-aZDJVKkHyBR43KxZg/exec";
 
         // Token sesi. Sengaja dalam memori sahaja - bukan localStorage.
         // Tutup tab = log keluar. Trade-off yang berbaloi untuk sistem ini.
@@ -518,13 +518,12 @@
                 const hasil = await panggilAPI({ action: 'GET_ALL' });
                 if (!hasil.ok) throw new Error(hasil.error || 'Gagal memuat data');
 
-                allData      = hasil.data  || [];
-                settingsData = hasil.harga || [];
+                globalData         = hasil.data  || [];
+                globalSettingsData = hasil.harga || [];
 
-                if (typeof renderTable === 'function')     renderTable();
-                if (typeof renderSettings === 'function')  renderSettings();
-                if (typeof updateDashboard === 'function') updateDashboard();
-                if (typeof applyFilters === 'function')    applyFilters();
+                processData(globalData);                  // KPI + carta
+                renderSettingsTable(globalSettingsData);  // tab penetapan
+                applyFilters();                           // jadual + paginasi
 
             } catch (err) {
                 if (err.message !== 'AUTH') {
