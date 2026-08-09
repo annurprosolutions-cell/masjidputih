@@ -1,655 +1,534 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#14532d">
+<meta name="description" content="Peta Interaktif Kedudukan Kubur - Tanah Perkuburan Islam Masjid Al-Rasyidin">
+<link rel="icon" type="image/png" href="https://i.postimg.cc/fypbhZ8v/masjid-arrasyidin.png">
+<title>Peta Interaktif Kedudukan Kubur | Masjid Al-Rasyidin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+body{font-family:'Inter',sans-serif;background:#f7f6f1;-webkit-text-size-adjust:100%}
+.custom-scrollbar::-webkit-scrollbar{width:8px;height:8px}
+.custom-scrollbar::-webkit-scrollbar-track{background:#eceae2;border-radius:4px}
+.custom-scrollbar::-webkit-scrollbar-thumb{background:#c3bfb2;border-radius:4px}
 
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#1a5d2e">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="description" content="eMaqbarah - Sistem Carian Lokasi Pusara Tanah Perkuburan Islam Masjid Al-Rasyidin">
-    <link rel="icon" type="image/png" href="https://i.postimg.cc/fypbhZ8v/masjid-arrasyidin.png">
+/* Petak kubur */
+.petak{
+  display:flex;align-items:center;justify-content:center;
+  border-radius:5px;border:1px solid;
+  font-weight:600;font-size:11px;line-height:1;
+  height:30px;transition:transform .12s,box-shadow .12s;
+  cursor:pointer;user-select:none;white-space:nowrap;
+}
+.petak:hover{transform:scale(1.14);box-shadow:0 3px 10px rgba(0,0,0,.18);z-index:20;position:relative}
+.s-L{background:#dbe6fb;border-color:#b6cbf0;color:#2d4d80}
+.s-P{background:#fcdce7;border-color:#f4bcd0;color:#8a3a55}
+.s-K{background:#fde9b8;border-color:#f2d489;color:#7a5c14}
+.s-kosong{background:#fff;border-color:#dcd8cc;color:#a8a394}
+.s-guna{background:#e6e4dd;border-color:#c9c5b8;color:#5f5b50}
+.s-pilih{background:#22c55e!important;border-color:#15803d!important;color:#fff!important;
+  box-shadow:0 0 0 3px rgba(34,197,94,.35);animation:denyut 1.4s infinite}
+@keyframes denyut{0%,100%{box-shadow:0 0 0 3px rgba(34,197,94,.35)}50%{box-shadow:0 0 0 7px rgba(34,197,94,.15)}}
 
-    <title>eMaqbarah - Peta Kubur | Masjid Al-Rasyidin</title>
+.spinner{width:38px;height:38px;border:4px solid #dcf0e2;border-top-color:#14532d;border-radius:50%;animation:pusing .8s linear infinite}
+@keyframes pusing{to{transform:rotate(360deg)}}
+[hidden]{display:none!important}
 
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overscroll-behavior-y: none; }
-
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .scrolling-touch { -webkit-overflow-scrolling: touch; }
-
-        @keyframes glowGreen {
-            0%   { box-shadow: 0 0 5px 2px rgba(34,197,94,.5); transform: scale(1); }
-            50%  { box-shadow: 0 0 15px 6px rgba(34,197,94,.7); transform: scale(1.15); z-index: 20; }
-            100% { box-shadow: 0 0 5px 2px rgba(34,197,94,.5); transform: scale(1); }
-        }
-        .grave-slot { transition: all .15s ease; }
-        .grave-slot:hover { transform: scale(1.08); box-shadow: 0 4px 6px -1px rgba(0,0,0,.15); z-index: 10; }
-        .grave-highlighted {
-            background-color: #22c55e !important;
-            border: 3px solid #16a34a !important;
-            color: #fff !important;
-            animation: glowGreen 1.5s infinite;
-            z-index: 30;
-        }
-        .spinner {
-            width: 40px; height: 40px; border: 4px solid #d1fae5;
-            border-top-color: #1a5d2e; border-radius: 50%;
-            animation: spin .8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .animate-slide-up { animation: slideUp .3s ease-out forwards; }
-        .mb-safe { margin-bottom: env(safe-area-inset-bottom); }
-        [hidden] { display: none !important; }
-    </style>
+#petaSkala{transform-origin:top left;transition:transform .18s ease}
+@media print{.no-print{display:none!important}}
+</style>
 </head>
-<body class="min-h-[100dvh] text-gray-800 flex flex-col overflow-hidden">
+<body class="min-h-screen">
 
-<!-- ============ NAVBAR ============ -->
-<nav class="bg-[#1a5d2e] text-white shrink-0 z-30 shadow-md">
-    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-14 sm:h-16">
-            <div class="flex items-center gap-8">
-                <a href="../" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Kembali ke Laman Utama">
-                    <img src="https://i.postimg.cc/fypbhZ8v/masjid-arrasyidin.png" alt="Logo Masjid" class="h-10 sm:h-11 w-auto object-contain bg-white rounded-full p-0.5 border border-white/20 shadow-sm" onerror="this.style.display='none'">
-                    <div class="flex flex-col justify-center">
-                        <span class="font-serif font-bold text-xl sm:text-2xl tracking-wide leading-none">eMaqbarah</span>
-                        <span class="text-[10px] sm:text-xs font-semibold text-green-100 tracking-wider mt-1 uppercase">Masjid Al-Rasyidin</span>
-                    </div>
-                </a>
+<!-- ================= HEADER ================= -->
+<header class="bg-[#14532d] text-white shadow-lg">
+  <div class="max-w-[1500px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+    <a href="../" class="flex items-center gap-3 sm:gap-4 hover:opacity-90 transition" title="Kembali ke Laman Utama">
+      <img src="https://i.postimg.cc/fypbhZ8v/masjid-arrasyidin.png" class="h-11 sm:h-14 w-auto bg-white/95 rounded-lg p-1" alt="Logo" onerror="this.style.display='none'">
+      <div>
+        <h1 class="text-base sm:text-2xl font-extrabold tracking-wide leading-tight">PETA INTERAKTIF KEDUDUKAN KUBUR</h1>
+        <p class="text-[10px] sm:text-xs text-green-200 tracking-widest uppercase mt-0.5">Tanah Perkuburan Islam &middot; Masjid Al-Rasyidin</p>
+      </div>
+    </a>
 
-                <div class="hidden md:flex space-x-8 text-sm font-semibold tracking-wide">
-                    <a href="#peta" class="border-b-2 border-white text-white py-5">PETA KUBUR</a>
-                    <a href="#" onclick="focusSearch(); return false;" class="text-white/80 hover:text-white py-5 transition-colors">CARIAN</a>
-                    <a href="#" onclick="openDirectory(); return false;" class="text-white/80 hover:text-white py-5 transition-colors">DIREKTORI</a>
-                    <a href="#" onclick="openInfo(); return false;" class="text-white/80 hover:text-white py-5 transition-colors">INFO</a>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <a href="../" class="hidden sm:flex items-center gap-2 border border-white/40 bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-full text-sm font-medium transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    Utama
-                </a>
-                <a href="../admin/" class="flex items-center gap-2 border border-white/40 bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-full text-sm font-medium transition-colors">
-                    Admin
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </a>
-            </div>
+    <div class="flex items-center gap-3 shrink-0">
+      <div class="hidden sm:flex items-center gap-2.5 bg-white/10 border border-white/25 rounded-full pl-2 pr-4 py-1.5">
+        <span class="w-9 h-9 rounded-full bg-[#f0c419] text-[#14532d] flex items-center justify-center font-bold text-lg" style="transform:rotate(292deg)">&#10148;</span>
+        <div class="leading-tight">
+          <p class="text-[10px] text-green-100 uppercase tracking-wider">Arah Kiblat</p>
+          <p class="text-sm font-bold">292&deg;</p>
         </div>
+      </div>
+      <a href="../admin/" class="text-xs sm:text-sm border border-white/35 bg-white/10 hover:bg-white/20 px-3 sm:px-4 py-2 rounded-full font-medium transition">Admin</a>
     </div>
-</nav>
+  </div>
+</header>
 
-<!-- ============ SEARCH & FILTER ============ -->
-<div class="bg-white border-b border-gray-200 shrink-0 z-20">
-    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
-            <div class="flex w-full sm:flex-1 relative">
-                <div class="relative w-full" id="searchWrap">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    </div>
-                    <input type="text" id="searchInput" onkeyup="handleSearch()" autocomplete="off"
-                           class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-l-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                           placeholder="Cari nama si mati...">
-                    <div id="searchSuggestions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 max-h-72 overflow-y-auto z-50"></div>
-                </div>
-                <button onclick="handleSearch(true)" class="bg-[#16a34a] hover:bg-green-700 text-white font-medium px-6 py-2.5 rounded-r-lg transition-colors border border-[#16a34a] shrink-0">Cari</button>
-            </div>
+<!-- ================= BAR CARIAN + PETUNJUK ================= -->
+<div class="max-w-[1500px] mx-auto px-4 sm:px-6 pt-4 no-print">
+  <div class="flex flex-col lg:flex-row gap-3 lg:items-stretch">
 
-            <div class="flex w-full sm:w-auto gap-3">
-                <select id="filterBlok" onchange="applyFilters()" class="block w-full sm:w-44 pl-3 pr-10 py-2.5 border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 text-sm rounded-lg text-gray-700">
-                    <option value="semua">Semua Bahagian</option>
-                    <option value="L">Lelaki</option>
-                    <option value="P">Perempuan</option>
-                    <option value="K">Kanak-kanak</option>
-                </select>
-                <select id="filterStatus" onchange="applyFilters()" class="block w-full sm:w-40 pl-3 pr-10 py-2.5 border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 text-sm rounded-lg text-gray-700">
-                    <option value="semua">Semua Status</option>
-                    <option value="kosong">Kosong</option>
-                    <option value="digunakan">Telah Digunakan</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Status bar -->
-        <div id="statusBar" class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs sm:text-sm text-gray-600">
-            <span id="statSync" class="flex items-center gap-1.5 text-gray-500">
-                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Menyambung ke pangkalan data...
-            </span>
-        </div>
+    <div class="bg-white rounded-xl border border-[#e3dfd3] shadow-sm p-2.5 flex gap-2 lg:w-[380px] shrink-0">
+      <div class="relative flex-1" id="bungkusCari">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input id="inputCari" onkeyup="cari()" autocomplete="off" placeholder="Cari nama, no lot atau maklumat lain..."
+               class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
+        <div id="cadangan" class="hidden absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 max-h-72 overflow-y-auto z-50 custom-scrollbar"></div>
+      </div>
+      <button onclick="cari(true)" class="bg-[#16a34a] hover:bg-green-700 text-white text-sm font-semibold px-5 rounded-lg transition">Cari</button>
     </div>
+
+    <div class="bg-white rounded-xl border border-[#e3dfd3] shadow-sm px-4 py-2.5 flex-1">
+      <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Petunjuk Status</p>
+      <div class="flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-medium text-gray-700">
+        <span class="flex items-center gap-1.5"><i class="w-4 h-4 rounded bg-[#dbe6fb] border border-[#b6cbf0]"></i>Lelaki</span>
+        <span class="flex items-center gap-1.5"><i class="w-4 h-4 rounded bg-[#fcdce7] border border-[#f4bcd0]"></i>Perempuan</span>
+        <span class="flex items-center gap-1.5"><i class="w-4 h-4 rounded bg-[#fde9b8] border border-[#f2d489]"></i>Kanak-kanak</span>
+        <span class="flex items-center gap-1.5"><i class="w-4 h-4 rounded bg-white border border-[#dcd8cc]"></i>Kosong</span>
+        <span class="flex items-center gap-1.5"><i class="w-4 h-4 rounded bg-[#e6e4dd] border border-[#c9c5b8]"></i>Telah Digunakan</span>
+        <span class="flex items-center gap-1.5"><i class="w-4 h-4 rounded bg-[#22c55e] border border-[#15803d]"></i>Dipilih</span>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-[#e3dfd3] shadow-sm px-4 py-2.5 flex items-center gap-2.5 lg:w-[210px] shrink-0">
+      <svg class="w-5 h-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-width="2" d="M12 16v-4m0-4h.01"/></svg>
+      <p class="text-xs text-gray-600 leading-snug">Klik pada petak untuk lihat maklumat</p>
+    </div>
+  </div>
 </div>
 
-<!-- ============ MAP ============ -->
-<main id="peta" class="flex-1 overflow-hidden relative bg-white m-2 sm:m-4 rounded-xl shadow-sm border border-gray-200">
+<!-- ================= PETA ================= -->
+<main class="max-w-[1500px] mx-auto px-4 sm:px-6 py-4">
+  <div class="bg-white rounded-2xl border border-[#e3dfd3] shadow-sm relative overflow-hidden">
 
-    <!-- Loading -->
-    <div id="loadingState" class="absolute inset-0 flex flex-col items-center justify-center bg-white z-10 gap-4">
-        <div class="spinner"></div>
-        <p class="text-sm font-semibold text-[#1a5d2e]">Memuat turun data pusara...</p>
+    <div id="statMuat" class="py-24 flex flex-col items-center gap-4">
+      <div class="spinner"></div>
+      <p class="text-sm font-semibold text-[#14532d]">Memuat turun data pusara...</p>
     </div>
 
-    <!-- Error -->
-    <div id="errorState" hidden class="absolute inset-0 flex flex-col items-center justify-center bg-white z-10 gap-3 px-6 text-center">
-        <svg class="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.74 4a2 2 0 00-3.48 0L3.33 16a2 2 0 001.74 3z"/></svg>
-        <h3 class="font-bold text-gray-800">Gagal memuatkan data</h3>
-        <p id="errorMsg" class="text-sm text-gray-500 max-w-md"></p>
-        <button onclick="loadData()" class="mt-2 px-5 py-2 bg-[#1a5d2e] text-white rounded-lg font-semibold text-sm hover:bg-green-800">Cuba Lagi</button>
+    <div id="statRalat" hidden class="py-20 flex flex-col items-center gap-3 px-6 text-center">
+      <svg class="w-11 h-11 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.74 4a2 2 0 00-3.48 0L3.33 16a2 2 0 001.74 3z"/></svg>
+      <h3 class="font-bold text-gray-800">Gagal memuatkan peta</h3>
+      <p id="teksRalat" class="text-sm text-gray-500 max-w-md"></p>
+      <button onclick="muatData()" class="mt-1 px-5 py-2 bg-[#14532d] text-white rounded-lg font-semibold text-sm hover:bg-green-900">Cuba Lagi</button>
     </div>
 
-    <div id="mapContainer" class="w-full h-full overflow-auto p-4 sm:p-6 custom-scrollbar scrolling-touch overscroll-contain">
-        <div class="min-w-max mx-auto space-y-8">
-
-            <section data-sect="L">
-                <div class="flex items-center gap-2 mb-3">
-                    <h2 class="text-lg font-bold text-gray-800 tracking-wide">BLOK A</h2>
-                    <span class="text-gray-300">|</span>
-                    <span class="text-[#004085] font-bold">BAHAGIAN LELAKI</span>
-                    <span id="countL" class="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full"></span>
-                </div>
-                <div id="gridL" class="border border-gray-200 rounded-lg p-3 bg-gray-50/50"></div>
-            </section>
-
-            <section data-sect="P">
-                <div class="flex items-center gap-2 mb-3">
-                    <h2 class="text-lg font-bold text-gray-800 tracking-wide">BLOK A</h2>
-                    <span class="text-gray-300">|</span>
-                    <span class="text-[#721c24] font-bold">BAHAGIAN PEREMPUAN</span>
-                    <span id="countP" class="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full"></span>
-                </div>
-                <div id="gridP" class="border border-gray-200 rounded-lg p-3 bg-gray-50/50"></div>
-            </section>
-
-            <section data-sect="K">
-                <div class="flex items-center gap-2 mb-3">
-                    <h3 class="text-[#1a5d2e] font-bold text-sm uppercase tracking-wide">Kawasan Kanak-kanak (Bahagian Bawah Kiri)</h3>
-                    <span id="countK" class="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full"></span>
-                </div>
-                <div id="gridK" class="border border-gray-200 rounded-lg p-3 bg-gray-50/50"></div>
-            </section>
-
-            <!-- Rekod tanpa lot -->
-            <section id="noLotSection" hidden>
-                <h3 class="text-amber-700 font-bold text-sm mb-3 uppercase tracking-wide">Rekod Tanpa Nombor Lot</h3>
-                <div id="noLotList" class="flex flex-wrap gap-2"></div>
-            </section>
-
-            <!-- Legend -->
-            <div class="mt-8 border border-gray-200 rounded-xl p-4 bg-white">
-                <h4 class="text-xs font-bold text-gray-800 mb-3 uppercase">Petunjuk</h4>
-                <div class="flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-gray-700">
-                    <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#cbe2fa] border border-[#a2c8f0]"></div> Lot Lelaki (kosong)</span>
-                    <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#ffc8db] border border-[#f0a6c2]"></div> Lot Perempuan (kosong)</span>
-                    <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#ffe180] border border-[#f0c862]"></div> Lot Kanak-kanak (kosong)</span>
-                    <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#e2e8f0] border border-gray-400"></div> Telah Digunakan</span>
-                    <span class="flex items-center gap-2"><div class="w-5 h-5 rounded-sm bg-[#22c55e] border border-[#16a34a]"></div> Dipilih / Hasil Carian</span>
-                </div>
-            </div>
-        </div>
+    <div id="bekasPeta" hidden class="overflow-auto custom-scrollbar p-4 sm:p-5">
+      <div id="petaSkala"></div>
     </div>
+  </div>
+
+  <!-- Maklumat kawasan + kawalan -->
+  <div class="mt-4 flex flex-col lg:flex-row gap-3">
+    <div class="bg-white rounded-xl border border-[#e3dfd3] shadow-sm p-4 lg:w-[330px] shrink-0">
+      <p class="text-[11px] font-bold text-[#14532d] uppercase tracking-wider mb-2">Maklumat Kawasan</p>
+      <ul id="maklumatKawasan" class="text-xs text-gray-600 space-y-1"></ul>
+    </div>
+
+    <div class="bg-white rounded-xl border border-[#e3dfd3] shadow-sm p-4 flex-1 flex items-center justify-center">
+      <div class="text-center">
+        <p class="text-[11px] font-bold text-[#14532d] uppercase tracking-widest mb-1">Petunjuk Kiblat &nbsp;&rarr;</p>
+        <p class="text-xs text-gray-500 leading-relaxed">Semua kedudukan kubur disusun mengikut arah kiblat (292&deg;)<br>Klik petak untuk lihat maklumat lebih lanjut</p>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-[#e3dfd3] shadow-sm p-3 flex items-center gap-2 no-print">
+      <button onclick="zum(-1)" class="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-sm font-semibold" title="Perkecilkan">&minus;</button>
+      <span id="labelZum" class="text-xs font-bold text-gray-600 w-12 text-center">100%</span>
+      <button onclick="zum(1)" class="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-sm font-semibold" title="Perbesarkan">+</button>
+      <button onclick="muatSkrin()" class="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-xs font-semibold whitespace-nowrap">Muat Skrin</button>
+    </div>
+  </div>
+
+  <!-- Rekod tanpa lot / luar peta -->
+  <div id="bahagianLain" hidden class="mt-4 bg-white rounded-xl border border-amber-200 shadow-sm p-4">
+    <p class="text-[11px] font-bold text-amber-700 uppercase tracking-wider mb-2">Rekod Tanpa Kedudukan Pada Peta</p>
+    <div id="senaraiLain" class="flex flex-wrap gap-2"></div>
+  </div>
 </main>
 
-<!-- ============ FOOTER ============ -->
-<footer class="bg-white border-t border-gray-200 shrink-0 z-20 shadow-inner">
-    <div class="max-w-[1400px] mx-auto px-4 py-3 text-center space-y-1">
-        <p class="text-sm text-gray-500 font-medium">&copy; 2026 Pengurusan MASJID AL-RASYIDIN &middot;
-            <a href="../" class="text-[#1a5d2e] hover:underline font-semibold">Laman Utama</a>
-        </p>
-        <p class="text-[11px] text-gray-400 leading-relaxed max-w-3xl mx-auto">
-            Paparan awam ini hanya memaparkan nama si mati, tarikh kematian dan lokasi lot. Maklumat waris, nombor telefon dan alamat tidak dipaparkan.
-        </p>
-    </div>
+<footer class="max-w-[1500px] mx-auto px-4 sm:px-6 pb-8 text-center space-y-1">
+  <p class="text-xs text-gray-500">&copy; 2026 Pengurusan MASJID AL-RASYIDIN &middot;
+    <a href="../" class="text-[#14532d] font-semibold hover:underline">Laman Utama</a></p>
+  <p class="text-[10px] text-gray-400 max-w-2xl mx-auto leading-relaxed">Paparan awam hanya menunjukkan nama si mati, tarikh kematian dan lokasi lot. Maklumat waris, nombor telefon dan alamat tidak dipaparkan.</p>
 </footer>
 
-<!-- ============ MODAL ============ -->
-<div id="infoModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-gray-900 bg-opacity-60 backdrop-blur-sm" onclick="closeModal()">
-    <div class="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh] animate-slide-up sm:animate-none" onclick="event.stopPropagation()">
-        <div class="bg-[#1a5d2e] px-5 py-4 flex justify-between items-center text-white shrink-0">
-            <h3 id="modalTitle" class="text-lg font-bold tracking-wide">Maklumat Pusara</h3>
-            <button onclick="closeModal()" class="p-1 hover:bg-white/20 rounded-full transition-colors" aria-label="Tutup">
-                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-        </div>
-        <div id="modalBody" class="p-6 flex-1 overflow-y-auto scrolling-touch custom-scrollbar"></div>
-        <div class="bg-gray-50 px-5 py-4 border-t border-gray-200 shrink-0 mb-safe">
-            <button onclick="closeModal()" class="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-lg transition-colors">Tutup</button>
-        </div>
+<!-- ================= MODAL ================= -->
+<div id="modal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-gray-900/60 backdrop-blur-sm" onclick="tutupModal()">
+  <div class="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col max-h-[88vh]" onclick="event.stopPropagation()">
+    <div class="bg-[#14532d] px-5 py-4 flex justify-between items-center text-white">
+      <h3 id="tajukModal" class="text-lg font-bold">Maklumat Pusara</h3>
+      <button onclick="tutupModal()" class="p-1 hover:bg-white/20 rounded-full" aria-label="Tutup">
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
+    <div id="isiModal" class="p-6 overflow-y-auto custom-scrollbar"></div>
+    <div class="bg-gray-50 px-5 py-4 border-t">
+      <button onclick="tutupModal()" class="w-full py-3 bg-gray-200 hover:bg-gray-300 font-bold rounded-lg transition">Tutup</button>
+    </div>
+  </div>
 </div>
 
 <script>
-/* =========================================================================
-   eMaqbarah - Peta Kubur Masjid Al-Rasyidin
-   Sumber data : Google Sheet "Database Kubur" > sheet Resit_Jenazah
-   ========================================================================= */
+/* ==========================================================================
+   PETA INTERAKTIF KEDUDUKAN KUBUR — Masjid Al-Rasyidin
+   Sumber: Apps Script ?action=peta (nama, tarikh kematian, no lot sahaja)
+   ========================================================================== */
 
 const CONFIG = {
-    // Endpoint Apps Script. Hanya pulangkan nama, tarikh kematian, no lot.
-    API_URL: "https://script.google.com/macros/s/AKfycbyfvXSIilkZ2JkIdLKyWZI6ZS28ROsSigPOdA9S_TAxhCd1xm6UB2ftABmW4St3I9CIig/exec",
+  API_URL: "https://script.google.com/macros/s/AKfycbxlzvM588yfPUyU3Pefhfg5gb9fBL5b1dAjhHZMv3RX7D-MZAXP-aZDJVKkHyBR43KxZg/exec",
 
-    // --- SAIZ PETAK (fleksibel) ---
-    // Grid akan auto-besar kalau database ada lot melebihi nombor minimum ini.
-    MIN_LOT:    { L: 200, P: 200, K: 50 },
-    LOT_PER_ROW:{ L: 10,  P: 10,  K: 10 },
-    AUTO_GROW:  true,   // true = grid membesar sendiri ikut lot tertinggi dalam database
-    GROW_BUFFER: 20     // berapa lot kosong tambahan selepas lot tertinggi
+  // Susun atur — MESTI sepadan dengan objek PETA dalam Code.gs
+  BARIS_DEWASA:    19,   // baris 1-19 = dewasa
+  LAJUR_LELAKI:    10,   // lajur 1-10
+  LAJUR_PEREMPUAN:  9,   // lajur 11-19
+  BARIS_KANAK:     20    // baris 20 = kanak-kanak
+};
+CONFIG.JUM_LAJUR = CONFIG.LAJUR_LELAKI + CONFIG.LAJUR_PEREMPUAN;   // 19
+CONFIG.MUAT = {
+  L: CONFIG.LAJUR_LELAKI    * CONFIG.BARIS_DEWASA,   // 190
+  P: CONFIG.LAJUR_PEREMPUAN * CONFIG.BARIS_DEWASA,   // 171
+  K: CONFIG.JUM_LAJUR                                // 19
 };
 
-/* ---------- STATE ---------- */
-let GRAVES = {};          // { "L40": {code, sect, num, records:[]} }
-let NO_LOT_RECORDS = [];  // rekod yang tiada nombor lot
-let ALL_RECORDS = [];
-let SECTION_SIZE = { L: 0, P: 0, K: 0 };
-let currentHighlightedId = null;
+let PETAK = {};        // "9-3" -> {baris, lajur, sect, kod, rekod:[]}
+let LUAR_PETA = [];    // rekod tanpa lot / lot di luar susunan
+let dipilih = null;
+let skala = 1;
 
-/* =========================================================================
-   1. PENGHURAI MEDAN
-   ========================================================================= */
-
-// "LOT 40 (L40)" -> {sect:'L', num:40}   |  "P24" -> {sect:'P', num:24}  | "Tiada Lot" -> null
-function parseLot(raw) {
-    if (!raw) return null;
-    const s = String(raw).toUpperCase().trim();
-    if (!s || /TIADA|TIDAK|N\/?A|^-+$/.test(s)) return null;
-
-    // Keutamaan 1: kod dalam kurungan, cth (L40) / (P 24) / (K5)
-    let m = s.match(/\(\s*([LPK])\s*[-\s]?(\d+)\s*\)/);
-    // Keutamaan 2: kod berdiri sendiri, cth L40 / P-24
-    if (!m) m = s.match(/\b([LPK])\s*[-\s]?(\d+)\b/);
-    if (m) return { sect: m[1], num: parseInt(m[2], 10) };
-
-    // Keutamaan 3: "LOT 40" tanpa huruf bahagian -> tidak dapat ditentukan
-    return null;
+/* ---------- Penukaran nombor lot -> kedudukan ---------- */
+// L83 -> baris 9, lajur 3   |   P24 -> baris 3, lajur 16   |   K5 -> baris 20, lajur 5
+function lotKeKedudukan(sect, num) {
+  if (sect === 'K') {
+    if (num < 1 || num > CONFIG.MUAT.K) return null;
+    return { baris: CONFIG.BARIS_KANAK, lajur: num };
+  }
+  const perBaris = sect === 'L' ? CONFIG.LAJUR_LELAKI : CONFIG.LAJUR_PEREMPUAN;
+  if (num < 1 || num > perBaris * CONFIG.BARIS_DEWASA) return null;
+  const baris = Math.ceil(num / perBaris);
+  const dalam = ((num - 1) % perBaris) + 1;
+  return { baris: baris, lajur: sect === 'L' ? dalam : CONFIG.LAJUR_LELAKI + dalam };
 }
 
-// Jantina daripada nama: BINTI -> perempuan, BIN -> lelaki (BINTI disemak dahulu)
-function genderFromName(nama) {
-    if (!nama) return null;
-    const s = ' ' + String(nama).toUpperCase().replace(/[^A-Z\s]/g, ' ').replace(/\s+/g, ' ') + ' ';
-    if (/\sBINTI\s|\sBTE?\s/.test(s))  return 'Perempuan';
-    if (/\sBIN\s|\sB\s/.test(s))       return 'Lelaki';
-    return null;
+function kedudukanKeSect(baris, lajur) {
+  if (baris === CONFIG.BARIS_KANAK) return 'K';
+  return lajur <= CONFIG.LAJUR_LELAKI ? 'L' : 'P';
+}
+
+function huraiLot(raw) {
+  if (!raw) return null;
+  const t = String(raw).toUpperCase().trim();
+  if (!t || /TIADA|TIDAK|^-+$|^N\/?A$/.test(t)) return null;
+  let m = t.match(/\(\s*([LPK])\s*[-\s]?(\d+)\s*\)/) || t.match(/\b([LPK])\s*[-\s]?(\d+)\b/);
+  if (!m) return null;
+  const n = parseInt(m[2], 10);
+  return n > 0 ? { sect: m[1], num: n } : null;
+}
+
+function jantinaDariNama(nama) {
+  if (!nama) return null;
+  const s = ' ' + String(nama).toUpperCase().replace(/[^A-Z\s]/g, ' ').replace(/\s+/g, ' ') + ' ';
+  if (/\sBINTI\s|\sBTE?\s/.test(s)) return 'Perempuan';
+  if (/\sBIN\s|\sB\s/.test(s))      return 'Lelaki';
+  return null;
 }
 
 const BULAN = ['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
-
-// Format tarikh. Kalau tak pasti, pulangkan teks asal (jangan teka tarikh kubur).
-function formatTarikh(raw) {
-    if (!raw) return '-';
-    const s = String(raw).trim();
-    let d, mo, y, m;
-
-    if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)))          { y = +m[1]; mo = +m[2]; d = +m[3]; }
-    else if ((m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/))) {
-        // Konvensyen Malaysia: DD-MM-YYYY
-        d = +m[1]; mo = +m[2]; y = +m[3];
-        if (d <= 12 && mo > 12) { const t = d; d = mo; mo = t; }   // pembetulan jelas
-    }
-    else return s;   // format tak dikenali - papar apa adanya
-
-    if (!(mo >= 1 && mo <= 12) || !(d >= 1 && d <= 31)) return s;
-    return d + ' ' + BULAN[mo - 1] + ' ' + y;
+function tarikhCantik(raw) {
+  if (!raw) return '-';
+  const s = String(raw).trim(); let d, mo, y, m;
+  if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)))            { y=+m[1]; mo=+m[2]; d=+m[3]; }
+  else if ((m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/))) {
+    d=+m[1]; mo=+m[2]; y=+m[3];
+    if (d <= 12 && mo > 12) { const t2=d; d=mo; mo=t2; }
+  } else return s;                                    // format tak pasti — papar asal
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return s;
+  return d + ' ' + BULAN[mo-1] + ' ' + y;
 }
 
 function esc(t) {
-    return String(t == null ? '' : t).replace(/[&<>"']/g, c =>
-        ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  return String(t == null ? '' : t).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-/* =========================================================================
-   2. MUAT DATA
-   ========================================================================= */
-async function loadData() {
-    document.getElementById('errorState').hidden = true;
-    document.getElementById('loadingState').hidden = false;
+/* ---------- Muat data ---------- */
+async function muatData() {
+  document.getElementById('statRalat').hidden = true;
+  document.getElementById('bekasPeta').hidden = true;
+  document.getElementById('statMuat').hidden  = false;
 
-    try {
-        const res = await fetch(CONFIG.API_URL + '?action=peta&_cb=' + Date.now(), { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const hasil = await res.json();
-        if (!hasil.ok) throw new Error(hasil.error || 'Pelayan menolak permintaan');
+  try {
+    const res = await fetch(CONFIG.API_URL + '?action=peta&_cb=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const hasil = await res.json();
+    if (!hasil.ok) throw new Error(hasil.error || 'Pelayan menolak permintaan');
 
-        buildFromAPI(hasil.data || []);
-        document.getElementById('loadingState').hidden = true;
-        render();
+    bina(hasil.data || [], hasil.peta || []);
+    document.getElementById('statMuat').hidden  = true;
+    document.getElementById('bekasPeta').hidden = false;
+    lukis();
+    muatSkrin();
 
-    } catch (err) {
-        document.getElementById('loadingState').hidden = true;
-        document.getElementById('errorState').hidden = false;
-        document.getElementById('errorMsg').textContent =
-            'Tidak dapat memuatkan peta kubur. Sila cuba sebentar lagi. (' + err.message + ')';
-        document.getElementById('statSync').innerHTML =
-            '<span class="w-2 h-2 rounded-full bg-red-500"></span> Tiada sambungan data';
+  } catch (err) {
+    document.getElementById('statMuat').hidden  = true;
+    document.getElementById('statRalat').hidden = false;
+    document.getElementById('teksRalat').textContent =
+      'Tidak dapat menghubungi pelayan. Sila cuba sebentar lagi. (' + err.message + ')';
+  }
+}
+
+function bina(senarai, override) {
+  PETAK = {}; LUAR_PETA = [];
+
+  // Semua petak kosong dahulu
+  for (let b = 1; b <= CONFIG.BARIS_KANAK; b++) {
+    for (let j = 1; j <= CONFIG.JUM_LAJUR; j++) {
+      const sect = kedudukanKeSect(b, j);
+      PETAK[b + '-' + j] = { baris: b, lajur: j, sect: sect, kod: null, rekod: [] };
     }
-}
+  }
 
-function buildFromAPI(senarai) {
-    ALL_RECORDS = [];
-    NO_LOT_RECORDS = [];
-    const maxNum = { L: 0, P: 0, K: 0 };
-    const lotMap = {};
-
-    senarai.forEach(function (item) {
-        const nama = String(item.n || '').trim();
-        if (!nama) return;
-
-        const rec = {
-            nama:       nama,
-            tarikhMati: String(item.t || '').trim(),
-            lotRaw:     String(item.l || '').trim(),
-            jantina:    genderFromName(nama)
-        };
-        ALL_RECORDS.push(rec);
-
-        const lot = parseLot(rec.lotRaw);
-        if (!lot) { NO_LOT_RECORDS.push(rec); return; }
-
-        rec.code = lot.sect + lot.num;
-        if (lot.num > maxNum[lot.sect]) maxNum[lot.sect] = lot.num;
-        (lotMap[rec.code] = lotMap[rec.code] || []).push(rec);
-    });
-
-    // --- saiz grid fleksibel ---
-    ['L','P','K'].forEach(function (s) {
-        SECTION_SIZE[s] = CONFIG.AUTO_GROW
-            ? Math.max(CONFIG.MIN_LOT[s], maxNum[s] + (maxNum[s] ? CONFIG.GROW_BUFFER : 0))
-            : CONFIG.MIN_LOT[s];
-    });
-
-    GRAVES = {};
-    ['L','P','K'].forEach(function (s) {
-        for (var n = 1; n <= SECTION_SIZE[s]; n++) {
-            var code = s + n;
-            GRAVES[code] = { code: code, sect: s, num: n, records: lotMap[code] || [] };
-        }
-    });
-    Object.keys(lotMap).forEach(function (code) {
-        if (!GRAVES[code]) {
-            var m = code.match(/^([LPK])(\d+)$/);
-            GRAVES[code] = { code: code, sect: m[1], num: +m[2], records: lotMap[code] };
-        }
-    });
-}
-
-/* =========================================================================
-   3. RENDER
-   ========================================================================= */
-const SECT_LABEL = { L: 'Lelaki', P: 'Perempuan', K: 'Kanak-kanak' };
-
-function slotClass(g) {
-    if (g.records.length) return 'bg-[#e2e8f0] border-gray-400 text-gray-800';
-    if (g.sect === 'L') return 'bg-[#cbe2fa] border-[#a2c8f0] text-[#004085]';
-    if (g.sect === 'P') return 'bg-[#ffc8db] border-[#f0a6c2] text-[#721c24]';
-    return 'bg-[#ffe180] border-[#f0c862] text-gray-800';
-}
-
-function renderSection(sect) {
-    const perRow = CONFIG.LOT_PER_ROW[sect];
-    const total  = SECTION_SIZE[sect];
-    const el     = document.getElementById('grid' + sect);
-
-    let used = 0;
-    let html = '<div class="grid gap-1 items-stretch" style="grid-template-columns:auto repeat(' + perRow + ',minmax(2.25rem,1fr));min-width:' + (perRow * 3 + 4) + 'rem">';
-
-    html += '<div></div>';
-    for (let c = 1; c <= perRow; c++)
-        html += '<div class="text-center font-bold text-gray-500 text-[10px] sm:text-xs py-1.5 bg-gray-100 border border-gray-200 rounded-sm">' + c + '</div>';
-
-    for (let start = 1; start <= total; start += perRow) {
-        const end = Math.min(start + perRow - 1, total);
-        html += '<div class="flex items-center justify-end pr-2 font-bold text-gray-500 text-[10px] sm:text-xs whitespace-nowrap">' + sect + start + '&ndash;' + end + '</div>';
-
-        for (let n = start; n <= end; n++) {
-            const g = GRAVES[sect + n];
-            if (!g) { html += '<div></div>'; continue; }
-            if (g.records.length) used++;
-            const nm = g.records.length ? g.records[0].nama : 'Kosong';
-            html += '<button id="grave-' + g.code + '" data-sect="' + sect + '" data-used="' + (g.records.length ? 1 : 0) + '"' +
-                    ' class="grave-slot relative w-full aspect-square flex items-center justify-center font-bold text-[10px] sm:text-xs rounded-[3px] border shadow-sm ' + slotClass(g) + '"' +
-                    ' onclick="handleGraveClick(\'' + g.code + '\')"' +
-                    ' title="Lot ' + g.code + ' (' + SECT_LABEL[sect] + ')&#10;' + esc(nm) + '">' + n + '</button>';
-        }
-        for (let f = end + 1; f < start + perRow; f++) html += '<div></div>';
+  // Override manual dari tab Peta_Lot: kod lot -> kedudukan tetap
+  const petaOverride = {};
+  (override || []).forEach(function (x) {
+    if (x && x.k && x.b >= 1 && x.b <= CONFIG.BARIS_KANAK && x.j >= 1 && x.j <= CONFIG.JUM_LAJUR) {
+      petaOverride[String(x.k).toUpperCase()] = { baris: x.b, lajur: x.j };
     }
-    html += '</div>';
-    el.innerHTML = html;
+  });
 
-    document.getElementById('count' + sect).textContent = used + ' / ' + total + ' digunakan';
+  senarai.forEach(function (item) {
+    const nama = String(item.n || '').trim();
+    if (!nama) return;
+
+    const rec = {
+      nama: nama,
+      tarikh: String(item.t || '').trim(),
+      lotAsal: String(item.l || '').trim(),
+      jantina: jantinaDariNama(nama)
+    };
+
+    const lot = huraiLot(rec.lotAsal);
+    if (!lot) { LUAR_PETA.push(rec); return; }
+
+    rec.kod = lot.sect + lot.num;
+    const ked = petaOverride[rec.kod] || lotKeKedudukan(lot.sect, lot.num);
+    if (!ked) { rec.sebab = 'Nombor lot di luar susunan peta'; LUAR_PETA.push(rec); return; }
+
+    const kunci = ked.baris + '-' + ked.lajur;
+    if (!PETAK[kunci]) { rec.sebab = 'Kedudukan tidak sah'; LUAR_PETA.push(rec); return; }
+
+    PETAK[kunci].kod = rec.kod;
+    PETAK[kunci].rekod.push(rec);
+  });
 }
 
-function render() {
-    ['L','P','K'].forEach(renderSection);
+/* ---------- Lukis grid ---------- */
+function lukis() {
+  const lebarLabel = 34;
+  let h = '<div style="display:grid;grid-template-columns:' + lebarLabel + 'px repeat(' +
+          CONFIG.JUM_LAJUR + ',minmax(46px,1fr));gap:4px;min-width:' +
+          (lebarLabel + CONFIG.JUM_LAJUR * 50) + 'px">';
 
-    // rekod tanpa lot
-    const sec = document.getElementById('noLotSection');
-    const list = document.getElementById('noLotList');
-    if (NO_LOT_RECORDS.length) {
-        sec.hidden = false;
-        list.innerHTML = NO_LOT_RECORDS.map((r, i) =>
-            '<button onclick="openNoLot(' + i + ')" class="px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg text-xs sm:text-sm font-semibold text-amber-800 hover:bg-amber-100 transition-colors">' +
-            esc(r.nama) + '</button>').join('');
-    } else { sec.hidden = true; }
+  // Baris tajuk lajur
+  h += '<div style="font-size:10px;font-weight:800;color:#14532d;display:flex;align-items:end;justify-content:center;padding-bottom:4px">ROW</div>';
+  for (let j = 1; j <= CONFIG.JUM_LAJUR; j++) {
+    h += '<div style="text-align:center;font-size:12px;font-weight:800;color:#3f3a2f;padding-bottom:4px">' + j + '</div>';
+  }
 
-    const totalUsed = Object.values(GRAVES).filter(g => g.records.length).length;
-    document.getElementById('statSync').innerHTML =
-        '<span class="w-2 h-2 rounded-full bg-green-500"></span> Data langsung &middot; ' +
-        '<strong>' + totalUsed + '</strong> pusara berdaftar' +
-        (NO_LOT_RECORDS.length ? ' &middot; <strong>' + NO_LOT_RECORDS.length + '</strong> rekod tiada lot' : '');
-
-    applyFilters();
-}
-
-/* =========================================================================
-   4. CARIAN & TAPISAN
-   ========================================================================= */
-function focusSearch() { document.getElementById('searchInput').focus(); }
-
-function handleSearch(jump) {
-    const q = document.getElementById('searchInput').value.toLowerCase().trim();
-    const box = document.getElementById('searchSuggestions');
-
-    if (q.length < 2) { box.classList.add('hidden'); clearHighlight(); return; }
-
-    const hits = [];
-    Object.values(GRAVES).forEach(g => {
-        g.records.forEach(r => { if (r.nama.toLowerCase().includes(q)) hits.push({ code: g.code, rec: r }); });
-    });
-    NO_LOT_RECORDS.forEach((r, i) => { if (r.nama.toLowerCase().includes(q)) hits.push({ code: null, rec: r, noLotIndex: i }); });
-
-    if (!hits.length) {
-        box.innerHTML = '<div class="p-4 text-center text-gray-500 text-sm">Tiada rekod dijumpai.</div>';
-    } else {
-        box.innerHTML = hits.slice(0, 30).map(h =>
-            '<button class="w-full text-left px-4 py-3 hover:bg-green-50 border-b border-gray-100 last:border-0 transition-colors" ' +
-            'onclick="' + (h.code ? "selectResult('" + h.code + "')" : 'openNoLot(' + h.noLotIndex + ')') + '">' +
-            '<p class="font-semibold text-gray-800 text-sm">' + esc(h.rec.nama) + '</p>' +
-            '<p class="text-xs text-gray-500 mt-0.5">' + (h.code ? 'Lot ' + h.code + ' &middot; ' + SECT_LABEL[h.code[0]] : 'Tiada nombor lot') + '</p>' +
-            '</button>').join('');
+  for (let b = 1; b <= CONFIG.BARIS_KANAK; b++) {
+    h += '<div style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#3f3a2f">' + b + '</div>';
+    for (let j = 1; j <= CONFIG.JUM_LAJUR; j++) {
+      const p = PETAK[b + '-' + j];
+      const guna = p.rekod.length > 0;
+      const kelas = guna ? 's-guna' : ('s-' + p.sect);
+      const tip = guna
+        ? 'Baris ' + b + ', Lajur ' + j + (p.kod ? ' (Lot ' + p.kod + ')' : '') + '\n' + p.rekod[0].nama
+        : 'Baris ' + b + ', Lajur ' + j + ' — Kosong';
+      h += '<button class="petak ' + kelas + '" id="pk-' + b + '-' + j + '"' +
+           ' onclick="klikPetak(\'' + b + '-' + j + '\')" title="' + esc(tip) + '">' +
+           b + '-' + j + '</button>';
     }
-    box.classList.remove('hidden');
+  }
+  h += '</div>';
+  document.getElementById('petaSkala').innerHTML = h;
 
-    if (jump && hits.length === 1 && hits[0].code) selectResult(hits[0].code);
+  const terisi = Object.values(PETAK).filter(p => p.rekod.length).length;
+  const jum = CONFIG.BARIS_KANAK * CONFIG.JUM_LAJUR;
+  document.getElementById('maklumatKawasan').innerHTML =
+    '<li>&bull; Jumlah Row : <strong>' + CONFIG.BARIS_KANAK + '</strong> (Termasuk Kanak-kanak)</li>' +
+    '<li>&bull; Setiap Row : <strong>' + CONFIG.JUM_LAJUR + '</strong> petak</li>' +
+    '<li>&bull; Jumlah Keseluruhan : <strong>' + jum + '</strong> petak</li>' +
+    '<li>&bull; Telah digunakan : <strong>' + terisi + '</strong> &middot; Kosong : <strong>' + (jum - terisi) + '</strong></li>';
+
+  const bl = document.getElementById('bahagianLain');
+  if (LUAR_PETA.length) {
+    bl.hidden = false;
+    document.getElementById('senaraiLain').innerHTML = LUAR_PETA.map((r, i) =>
+      '<button onclick="modalLuar(' + i + ')" class="px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg text-xs font-semibold text-amber-800 hover:bg-amber-100 transition">' +
+      esc(r.nama) + '</button>').join('');
+  } else { bl.hidden = true; }
 }
 
-function selectResult(code) {
-    document.getElementById('searchSuggestions').classList.add('hidden');
-    document.getElementById('searchInput').blur();
-    applyHighlight(code);
-    scrollToGrave(code);
-    openModal(code);
+/* ---------- Zum ---------- */
+function pakaiSkala() {
+  const el = document.getElementById('petaSkala');
+  el.style.transform = 'scale(' + skala + ')';
+  const g = el.firstElementChild;
+  if (g) {
+    el.style.width  = (g.scrollWidth  * skala) + 'px';
+    el.style.height = (g.scrollHeight * skala) + 'px';
+  }
+  document.getElementById('labelZum').textContent = Math.round(skala * 100) + '%';
 }
-
-function scrollToGrave(code) {
-    setTimeout(() => {
-        const el = document.getElementById('grave-' + code);
-        const box = document.getElementById('mapContainer');
-        if (!el || !box) return;
-        box.scrollTo({
-            left: el.offsetLeft - box.clientWidth / 2 + el.offsetWidth / 2,
-            top:  el.offsetTop  - box.clientHeight / 2 + el.offsetHeight / 2,
-            behavior: 'smooth'
-        });
-    }, 60);
+function zum(arah) {
+  skala = Math.min(2.5, Math.max(0.35, +(skala + arah * 0.1).toFixed(2)));
+  pakaiSkala();
 }
+function muatSkrin() {
+  const bekas = document.getElementById('bekasPeta');
+  const g = document.getElementById('petaSkala').firstElementChild;
+  if (!g || !bekas) return;
+  const sedia = bekas.clientWidth - 36;
+  skala = Math.min(1.6, Math.max(0.35, +(sedia / g.scrollWidth).toFixed(3)));
+  pakaiSkala();
+}
+window.addEventListener('resize', () => { if (!document.getElementById('bekasPeta').hidden) muatSkrin(); });
 
-function applyFilters() {
-    const blok   = document.getElementById('filterBlok').value;
-    const status = document.getElementById('filterStatus').value;
+/* ---------- Carian ---------- */
+function cari(lompat) {
+  const q = document.getElementById('inputCari').value.toLowerCase().trim();
+  const kotak = document.getElementById('cadangan');
+  if (q.length < 2) { kotak.classList.add('hidden'); buangPilih(); return; }
 
-    document.querySelectorAll('section[data-sect]').forEach(s => {
-        s.hidden = !(blok === 'semua' || blok === s.dataset.sect);
+  const jumpa = [];
+  Object.keys(PETAK).forEach(function (k) {
+    PETAK[k].rekod.forEach(function (r) {
+      if (r.nama.toLowerCase().includes(q) ||
+          String(r.kod).toLowerCase().includes(q) ||
+          k.includes(q) ||
+          r.lotAsal.toLowerCase().includes(q)) jumpa.push({ kunci: k, r: r });
     });
+  });
+  LUAR_PETA.forEach(function (r, i) {
+    if (r.nama.toLowerCase().includes(q)) jumpa.push({ kunci: null, r: r, idx: i });
+  });
 
-    document.querySelectorAll('.grave-slot').forEach(b => {
-        const isUsed = b.dataset.used === '1';
-        const ok = status === 'semua' || (status === 'digunakan' ? isUsed : !isUsed);
-        b.style.opacity    = ok ? '' : '.18';
-        b.style.pointerEvents = ok ? '' : 'none';
+  kotak.innerHTML = jumpa.length
+    ? jumpa.slice(0, 40).map(function (h) {
+        return '<button class="w-full text-left px-4 py-2.5 hover:bg-green-50 border-b border-gray-100 last:border-0 transition" onclick="' +
+          (h.kunci ? "pilih('" + h.kunci + "')" : 'modalLuar(' + h.idx + ')') + '">' +
+          '<p class="font-semibold text-gray-800 text-sm">' + esc(h.r.nama) + '</p>' +
+          '<p class="text-xs text-gray-500 mt-0.5">' +
+          (h.kunci ? 'Baris ' + h.kunci.split('-')[0] + ', Lajur ' + h.kunci.split('-')[1] +
+                     (h.r.kod ? ' &middot; Lot ' + h.r.kod : '') : 'Tiada kedudukan pada peta') +
+          '</p></button>';
+      }).join('')
+    : '<div class="p-4 text-center text-gray-500 text-sm">Tiada rekod dijumpai.</div>';
+  kotak.classList.remove('hidden');
+
+  if (lompat && jumpa.length === 1 && jumpa[0].kunci) pilih(jumpa[0].kunci);
+}
+
+function pilih(kunci) {
+  document.getElementById('cadangan').classList.add('hidden');
+  document.getElementById('inputCari').blur();
+  tandaPilih(kunci);
+  const el = document.getElementById('pk-' + kunci);
+  const bekas = document.getElementById('bekasPeta');
+  if (el && bekas) {
+    bekas.scrollTo({
+      left: el.offsetLeft * skala - bekas.clientWidth / 2,
+      top:  el.offsetTop  * skala - bekas.clientHeight / 2,
+      behavior: 'smooth'
     });
+  }
+  bukaModal(kunci);
 }
 
-/* =========================================================================
-   5. HIGHLIGHT & MODAL
-   ========================================================================= */
-function handleGraveClick(code) { applyHighlight(code); openModal(code); }
-
-function applyHighlight(code) {
-    clearHighlight();
-    currentHighlightedId = code;
-    const el = document.getElementById('grave-' + code);
-    if (el) el.classList.add('grave-highlighted');
+function klikPetak(kunci) { tandaPilih(kunci); bukaModal(kunci); }
+function tandaPilih(kunci) {
+  buangPilih();
+  dipilih = kunci;
+  const el = document.getElementById('pk-' + kunci);
+  if (el) el.classList.add('s-pilih');
 }
-function clearHighlight() {
-    if (!currentHighlightedId) return;
-    const el = document.getElementById('grave-' + currentHighlightedId);
-    if (el) el.classList.remove('grave-highlighted');
-    currentHighlightedId = null;
+function buangPilih() {
+  if (!dipilih) return;
+  const el = document.getElementById('pk-' + dipilih);
+  if (el) el.classList.remove('s-pilih');
+  dipilih = null;
 }
 
-function recordCard(r) {
-    return '<div class="space-y-4">' +
-        '<div><p class="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Nama Penuh</p>' +
-            '<p class="text-xl font-bold text-gray-900 leading-snug">' + esc(r.nama) + '</p></div>' +
-        '<div class="grid grid-cols-2 gap-3">' +
-            '<div class="bg-gray-50 p-4 rounded-xl border border-gray-100">' +
-                '<p class="text-xs text-gray-500 font-semibold uppercase">Tarikh Kematian</p>' +
-                '<p class="text-base font-bold text-gray-800 mt-1">' + esc(formatTarikh(r.tarikhMati)) + '</p></div>' +
-            '<div class="bg-gray-50 p-4 rounded-xl border border-gray-100">' +
-                '<p class="text-xs text-gray-500 font-semibold uppercase">Jantina</p>' +
-                '<p class="text-base font-bold text-gray-800 mt-1">' + (r.jantina || '<span class="text-gray-400 font-medium">Tidak dinyatakan</span>') + '</p></div>' +
-        '</div></div>';
+/* ---------- Modal ---------- */
+const NAMA_SECT = { L: 'Lelaki', P: 'Perempuan', K: 'Kanak-kanak' };
+
+function kadRekod(r) {
+  return '<div class="space-y-4">' +
+    '<div><p class="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Nama Penuh</p>' +
+      '<p class="text-xl font-bold text-gray-900 leading-snug">' + esc(r.nama) + '</p></div>' +
+    '<div class="grid grid-cols-2 gap-3">' +
+      '<div class="bg-gray-50 p-4 rounded-xl border"><p class="text-xs text-gray-500 font-semibold uppercase">Tarikh Kematian</p>' +
+        '<p class="text-base font-bold text-gray-800 mt-1">' + esc(tarikhCantik(r.tarikh)) + '</p></div>' +
+      '<div class="bg-gray-50 p-4 rounded-xl border"><p class="text-xs text-gray-500 font-semibold uppercase">Jantina</p>' +
+        '<p class="text-base font-bold text-gray-800 mt-1">' + (r.jantina || '<span class="text-gray-400 font-medium">Tidak dinyatakan</span>') + '</p></div>' +
+    '</div></div>';
 }
 
-function openModal(code) {
-    const g = GRAVES[code];
-    if (!g) return;
+function bukaModal(kunci) {
+  const p = PETAK[kunci];
+  if (!p) return;
+  document.getElementById('tajukModal').textContent = 'Maklumat Pusara';
 
-    document.getElementById('modalTitle').textContent = 'Maklumat Pusara';
-    let html =
-        '<div class="mb-6 pb-4 border-b border-gray-100">' +
-            '<p class="text-xs text-gray-500 uppercase font-semibold tracking-wider">Lokasi Kubur</p>' +
-            '<p class="text-2xl font-bold text-gray-900 mt-1">Lot ' + esc(g.code) + '</p>' +
-            '<p class="text-sm text-gray-600 mt-1">Bahagian ' + SECT_LABEL[g.sect] + ' &middot; Blok A</p>' +
-        '</div>';
+  let h = '<div class="mb-6 pb-4 border-b">' +
+    '<p class="text-xs text-gray-500 uppercase font-semibold tracking-wider">Kedudukan</p>' +
+    '<p class="text-2xl font-bold text-gray-900 mt-1">Baris ' + p.baris + ', Lajur ' + p.lajur + '</p>' +
+    (p.kod ? '<p class="text-sm text-gray-600 mt-1">No Lot dalam rekod: <strong>' + esc(p.kod) + '</strong></p>' : '') +
+    '<p class="text-sm text-gray-600 mt-0.5">Bahagian ' + NAMA_SECT[p.sect] + '</p></div>';
 
-    if (!g.records.length) {
-        html += '<div class="text-center py-10">' +
-                '<svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"/></svg>' +
-                '<h4 class="text-lg font-bold text-gray-700">Lot Ini Kosong</h4>' +
-                '<p class="text-sm text-gray-500 mt-1">Tiada rekod pengebumian didaftarkan.</p></div>';
-    } else {
-        if (g.records.length > 1)
-            html += '<p class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">' +
-                    g.records.length + ' rekod didaftarkan pada lot ini.</p>';
-        html += g.records.map(recordCard).join('<hr class="my-5 border-gray-100">');
+  if (!p.rekod.length) {
+    h += '<div class="text-center py-10"><h4 class="text-lg font-bold text-gray-700">Lot Ini Kosong</h4>' +
+         '<p class="text-sm text-gray-500 mt-1">Tiada rekod pengebumian didaftarkan.</p></div>';
+  } else {
+    if (p.rekod.length > 1) {
+      h += '<p class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">' +
+           p.rekod.length + ' rekod didaftarkan pada lot ini.</p>';
     }
+    h += p.rekod.map(kadRekod).join('<hr class="my-5 border-gray-100">');
+  }
 
-    document.getElementById('modalBody').innerHTML = html;
-    document.getElementById('modalBody').scrollTop = 0;
-    document.getElementById('infoModal').classList.remove('hidden');
+  document.getElementById('isiModal').innerHTML = h;
+  document.getElementById('isiModal').scrollTop = 0;
+  document.getElementById('modal').classList.remove('hidden');
 }
 
-function openNoLot(i) {
-    const r = NO_LOT_RECORDS[i];
-    if (!r) return;
-    document.getElementById('searchSuggestions').classList.add('hidden');
-    document.getElementById('modalTitle').textContent = 'Maklumat Pusara';
-    document.getElementById('modalBody').innerHTML =
-        '<div class="mb-6 pb-4 border-b border-gray-100">' +
-            '<p class="text-xs text-gray-500 uppercase font-semibold tracking-wider">Lokasi Kubur</p>' +
-            '<p class="text-xl font-bold text-amber-700 mt-1">Tiada nombor lot direkodkan</p>' +
-            '<p class="text-sm text-gray-600 mt-1">Sila hubungi pejabat masjid untuk pengesahan lokasi.</p>' +
-        '</div>' + recordCard(r);
-    document.getElementById('modalBody').scrollTop = 0;
-    document.getElementById('infoModal').classList.remove('hidden');
+function modalLuar(i) {
+  const r = LUAR_PETA[i];
+  if (!r) return;
+  document.getElementById('cadangan').classList.add('hidden');
+  document.getElementById('tajukModal').textContent = 'Maklumat Pusara';
+  document.getElementById('isiModal').innerHTML =
+    '<div class="mb-6 pb-4 border-b"><p class="text-xs text-gray-500 uppercase font-semibold tracking-wider">Kedudukan</p>' +
+    '<p class="text-xl font-bold text-amber-700 mt-1">' + esc(r.sebab || 'Tiada nombor lot direkodkan') + '</p>' +
+    (r.lotAsal ? '<p class="text-sm text-gray-600 mt-1">Rekod menyatakan: <strong>' + esc(r.lotAsal) + '</strong></p>' : '') +
+    '<p class="text-sm text-gray-600 mt-0.5">Sila hubungi pejabat masjid untuk pengesahan lokasi.</p></div>' +
+    kadRekod(r);
+  document.getElementById('modal').classList.remove('hidden');
 }
 
-function closeModal() {
-    document.getElementById('infoModal').classList.add('hidden');
-    if (!document.getElementById('searchInput').value) clearHighlight();
+function tutupModal() {
+  document.getElementById('modal').classList.add('hidden');
+  if (!document.getElementById('inputCari').value) buangPilih();
 }
 
-/* =========================================================================
-   6. DIREKTORI & INFO
-   ========================================================================= */
-function openDirectory() {
-    const rows = [];
-    Object.values(GRAVES).forEach(g => g.records.forEach(r => rows.push({ code: g.code, rec: r })));
-    NO_LOT_RECORDS.forEach((r, i) => rows.push({ code: null, rec: r, noLotIndex: i }));
-    rows.sort((a, b) => a.rec.nama.localeCompare(b.rec.nama, 'ms'));
-
-    document.getElementById('modalTitle').textContent = 'Direktori Pusara (' + rows.length + ')';
-    document.getElementById('modalBody').innerHTML = rows.length
-        ? '<div class="divide-y divide-gray-100">' + rows.map(h =>
-            '<button class="w-full text-left py-3 hover:bg-green-50 px-2 rounded transition-colors" onclick="closeModal();' +
-            (h.code ? "selectResult('" + h.code + "')" : 'openNoLot(' + h.noLotIndex + ')') + '">' +
-            '<p class="font-semibold text-gray-800 text-sm">' + esc(h.rec.nama) + '</p>' +
-            '<p class="text-xs text-gray-500 mt-0.5">' + (h.code ? 'Lot ' + h.code + ' &middot; ' + SECT_LABEL[h.code[0]] : 'Tiada nombor lot') +
-            ' &middot; ' + esc(formatTarikh(h.rec.tarikhMati)) + '</p></button>').join('') + '</div>'
-        : '<p class="text-center text-gray-500 py-10">Tiada rekod.</p>';
-    document.getElementById('infoModal').classList.remove('hidden');
-}
-
-function openInfo() {
-    document.getElementById('modalTitle').textContent = 'Info eMaqbarah';
-    document.getElementById('modalBody').innerHTML =
-        '<div class="space-y-4 text-sm text-gray-700 leading-relaxed">' +
-        '<p><strong>eMaqbarah</strong> ialah peta interaktif tanah perkuburan Masjid Al-Rasyidin. Ia membantu orang awam mengetahui kedudukan pusara.</p>' +
-        '<div><p class="font-bold text-gray-900 mb-1">Cara guna</p><ul class="list-disc pl-5 space-y-1">' +
-        '<li>Taip nama si mati dalam ruang carian, kemudian pilih daripada senarai.</li>' +
-        '<li>Peta akan melompat ke lot berkenaan dan menyerlahkannya dengan warna hijau.</li>' +
-        '<li>Klik mana-mana petak untuk melihat maklumat lot tersebut.</li></ul></div>' +
-        '<div><p class="font-bold text-gray-900 mb-1">Kod lot</p><p><code class="bg-gray-100 px-1.5 py-0.5 rounded">L</code> = bahagian lelaki, ' +
-        '<code class="bg-gray-100 px-1.5 py-0.5 rounded">P</code> = bahagian perempuan, ' +
-        '<code class="bg-gray-100 px-1.5 py-0.5 rounded">K</code> = kanak-kanak. Contoh <code class="bg-gray-100 px-1.5 py-0.5 rounded">L40</code> ialah lot ke-40 bahagian lelaki.</p></div>' +
-        '<div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3"><p class="font-bold text-emerald-900 mb-1">Privasi</p>' +
-        '<p class="text-emerald-800">Paparan awam hanya menunjukkan nama si mati, tarikh kematian dan lokasi lot. Maklumat waris, nombor telefon, alamat dan resit bayaran tidak dipaparkan di sini.</p></div>' +
-        '<p class="text-xs text-gray-500 pt-2 border-t border-gray-100">Ada maklumat tidak tepat? Sila hubungi pejabat masjid untuk pembetulan rekod.</p>' +
-        '</div>';
-    document.getElementById('infoModal').classList.remove('hidden');
-}
-
-/* =========================================================================
-   7. INIT
-   ========================================================================= */
-document.addEventListener('click', e => {
-    const wrap = document.getElementById('searchWrap');
-    if (wrap && !wrap.contains(e.target)) document.getElementById('searchSuggestions').classList.add('hidden');
+document.addEventListener('click', function (e) {
+  const w = document.getElementById('bungkusCari');
+  if (w && !w.contains(e.target)) document.getElementById('cadangan').classList.add('hidden');
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-window.addEventListener('DOMContentLoaded', loadData);
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') tutupModal(); });
+window.addEventListener('DOMContentLoaded', muatData);
 </script>
 </body>
 </html>
