@@ -135,14 +135,20 @@
                         <label class="block text-xs md:text-sm font-medium text-gray-600">No. LOT Kubur</label>
                         <div class="flex mt-1">
                             <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-100 text-gray-500 text-sm font-bold">LOT</span>
-                            <input type="number" id="inputLotKubur" oninput="updateLotSuffix(); updatePreview();" class="w-full p-2.5 md:p-2 border border-r-0 focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="77">
-                            <select id="selectJantinaLot" onchange="updateLotSuffix(); updatePreview();" class="px-2 md:px-3 py-2.5 md:py-2 border rounded-r-md focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold bg-gray-50 text-emerald-800 cursor-pointer">
+                            <input type="number" id="inputLotKubur" oninput="updateLotSuffix(); updatePreview(); semakLot();" class="w-full p-2.5 md:p-2 border border-r-0 focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="77">
+                            <select id="selectJantinaLot" onchange="updateLotSuffix(); updatePreview(); semakLot();" class="px-2 md:px-3 py-2.5 md:py-2 border rounded-r-md focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold bg-gray-50 text-emerald-800 cursor-pointer">
                                 <option value="L">L</option>
                                 <option value="P">P</option>
                                 <option value="K">K</option>
                             </select>
                         </div>
-                        <p class="text-[10px] text-gray-500 mt-1 italic">Format: <span id="previewFormatLot" class="font-bold text-emerald-700">LOT __ (L__)</span></p>
+                        <div class="flex items-center gap-2 mt-1 flex-wrap">
+                            <p class="text-[10px] text-gray-500 italic">Format: <span id="previewFormatLot" class="font-bold text-emerald-700">LOT __ (L__)</span></p>
+                            <button type="button" onclick="cadangLotKosong()" class="text-[10px] font-bold text-emerald-700 border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded transition">
+                                Cadang lot kosong
+                            </button>
+                        </div>
+                        <p id="statusLot" class="text-[11px] mt-1 font-semibold"></p>
                     </div>
                     <div>
                         <label class="block text-xs md:text-sm font-medium text-gray-600">No. Kematian</label>
@@ -347,7 +353,7 @@
 
     <script>
         // Endpoint Apps Script (satu-satunya sambungan ke pangkalan data)
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfvXSIilkZ2JkIdLKyWZI6ZS28ROsSigPOdA9S_TAxhCd1xm6UB2ftABmW4St3I9CIig/exec";
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxlzvM588yfPUyU3Pefhfg5gb9fBL5b1dAjhHZMv3RX7D-MZAXP-aZDJVKkHyBR43KxZg/exec";
 
         /** Panggil Apps Script. Semua komunikasi lalu sini. */
         async function panggilAPI(payload) {
@@ -364,11 +370,65 @@
         let savedPdfUrl = ""; // Variable untuk simpan link GDrive PDF
 
 
-        // Fetch Payment Items on Page Load
+        // Senarai lot yang sudah diisi + cadangan lot kosong
+        let LOT_INFO = { terisi: { L: [], P: [], K: [] }, kosong: {}, muat: {} };
+
         window.addEventListener('DOMContentLoaded', () => {
             fetchPaymentItems();
             fetchLatestSequences();
+            muatMaklumatLot();
         });
+
+        async function muatMaklumatLot() {
+            try {
+                const hasil = await panggilAPI({ action: 'GET_LOT' });
+                if (hasil.ok) { LOT_INFO = hasil; semakLot(); }
+            } catch (e) {
+                console.warn('Gagal muat maklumat lot:', e.message);
+            }
+        }
+
+        /** Isikan lot kosong terkecil untuk bahagian yang dipilih. */
+        function cadangLotKosong() {
+            const jenis = document.getElementById('selectJantinaLot').value;
+            const n = LOT_INFO.kosong ? LOT_INFO.kosong[jenis] : null;
+            if (!n) {
+                alert('Tiada lot kosong untuk bahagian ' + jenis + ', atau maklumat lot belum dimuat turun.');
+                return;
+            }
+            document.getElementById('inputLotKubur').value = n;
+            updateLotSuffix(); updatePreview(); semakLot();
+        }
+
+        /**
+         * Amaran kalau lot sudah diisi. Sengaja TIDAK menyekat -
+         * kadang dua jenazah memang dikebumikan dalam satu lot.
+         */
+        function semakLot() {
+            const kotak = document.getElementById('statusLot');
+            if (!kotak) return;
+
+            const num   = parseInt(document.getElementById('inputLotKubur').value, 10);
+            const jenis = document.getElementById('selectJantinaLot').value;
+
+            if (!num) { kotak.textContent = ''; return; }
+
+            const senarai = (LOT_INFO.terisi && LOT_INFO.terisi[jenis]) || [];
+            const muat    = (LOT_INFO.muat && LOT_INFO.muat[jenis]) || 0;
+
+            if (muat && num > muat) {
+                kotak.className = 'text-[11px] mt-1 font-semibold text-amber-600';
+                kotak.textContent = 'Amaran: lot ' + jenis + num + ' di luar susunan peta (maksimum ' + jenis + muat + '). Rekod tetap boleh disimpan.';
+                return;
+            }
+            if (senarai.indexOf(num) > -1) {
+                kotak.className = 'text-[11px] mt-1 font-semibold text-red-600';
+                kotak.textContent = 'Amaran: lot ' + jenis + num + ' SUDAH DIISI. Semak semula sebelum simpan.';
+                return;
+            }
+            kotak.className = 'text-[11px] mt-1 font-semibold text-emerald-600';
+            kotak.textContent = 'Lot ' + jenis + num + ' kosong.';
+        }
 
         async function fetchPaymentItems() {
             const container = document.getElementById('paymentItemsContainer');
@@ -436,7 +496,7 @@
             } catch (error) {
                 console.error("Ralat muat turun sequence:", error);
                 inputKematian.placeholder = "Gagal memuat turun. Sila isi manual.";
-                refNoElement.innerText    = "MJR-" + new Date().getFullYear() + "-RALAT";
+                refNoElement.innerText    = "J-" + new Date().getFullYear() + "-RALAT";
             }
         }
 
@@ -604,6 +664,7 @@
                     if (resultData.noKematian) document.getElementById('inputNoKematian').value = resultData.noKematian;
                     updatePreview();
 
+                    muatMaklumatLot();   // segarkan senarai lot terisi
                     alert("Maklumat dan PDF berjaya dimuat naik & disimpan ke pangkalan data.\n\nNo Rujukan: " + resultData.noRujukan);
                     
                     // Tukar paparan butang selepas berjaya simpan
