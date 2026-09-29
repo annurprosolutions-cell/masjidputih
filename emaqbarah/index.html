@@ -236,17 +236,16 @@ function jantinaDariNama(nama) {
   return null;
 }
 
-const BULAN = ['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
 function tarikhCantik(raw) {
   if (!raw) return '-';
   const s = String(raw).trim(); let d, mo, y, m;
-  if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)))            { y=+m[1]; mo=+m[2]; d=+m[3]; }
-  else if ((m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/))) {
+  if ((m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/)))       { y=+m[1]; mo=+m[2]; d=+m[3]; }
+  else if ((m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/))) {
     d=+m[1]; mo=+m[2]; y=+m[3];
     if (d <= 12 && mo > 12) { const t2=d; d=mo; mo=t2; }
   } else return s;                                    // format tak pasti — papar asal
   if (mo < 1 || mo > 12 || d < 1 || d > 31) return s;
-  return d + ' ' + BULAN[mo-1] + ' ' + y;
+  return d + '.' + mo + '.' + y;                      // format d.m.yyyy cth 26.9.2026
 }
 
 function esc(t) {
