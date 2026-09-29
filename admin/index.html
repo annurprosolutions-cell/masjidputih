@@ -585,24 +585,12 @@
                 const rm = parseMoney(row['Jumlah (RM)']);
                 totalRM += rm;
 
-                // 2. Extract Date Info (Assuming format DD/MM/YYYY or similar)
-                let dateStr = row['Tarikh Kematian'] || row['Tarikh Simpan'];
-                if (dateStr) {
-                    // Try to parse basic DD/MM/YYYY or YYYY-MM-DD
-                    let parts = dateStr.split(/[-/]/);
-                    if(parts.length >= 3) {
-                        let year = parts[2].length === 4 ? parts[2] : (parts[0].length === 4 ? parts[0] : null);
-                        let month = parts[2].length === 4 ? parseInt(parts[1]) - 1 : parseInt(parts[1]) - 1; 
-                        
-                        // Check if current year
-                        if (year && year.includes(currentYearStr)) {
-                            currentYearCount++;
-                            if (month >= 0 && month < 12) {
-                                deathsPerMonth[month] += 1;
-                                revenuePerMonth[month] += rm;
-                            }
-                        }
-                    }
+                // 2. Extract Date Info (d.m.yyyy, DD/MM/YYYY atau YYYY-MM-DD)
+                const dt = parseCustomDate(row['Tarikh Kematian'] || row['Tarikh Simpan']);
+                if (dt && dt.getFullYear().toString() === currentYearStr) {
+                    currentYearCount++;
+                    deathsPerMonth[dt.getMonth()] += 1;
+                    revenuePerMonth[dt.getMonth()] += rm;
                 }
 
                 // 3. Pegawai Count
@@ -1017,7 +1005,8 @@
                             <i class="far fa-calendar-alt text-emerald-600 mr-3 text-sm"></i>
                             <div class="w-full">
                                 <label class="text-xs text-gray-500 font-semibold uppercase block">Tarikh Kematian / Simpan</label>
-                                <input type="text" id="editTarikh" value="${row['Tarikh Kematian'] || row['Tarikh Simpan'] || ''}" class="w-full font-semibold text-gray-800 outline-none bg-transparent">
+                                <input type="text" id="editTarikh" inputmode="numeric" maxlength="10" placeholder="26.9.2026" value="${formatTarikh(row['Tarikh Kematian'] || row['Tarikh Simpan'] || '')}" oninput="this.value=this.value.replace(/[\/-]/g,'.').replace(/[^0-9.]/g,'').replace(/\.{2,}/g,'.')" onblur="this.value=formatTarikh(this.value)" class="w-full font-semibold text-gray-800 outline-none bg-transparent">
+                                <span class="text-[10px] text-gray-400">Format: hari.bulan.tahun (cth 26.9.2026)</span>
                             </div>
                         </div>
                         <div class="bg-white p-3 rounded-lg border border-gray-200 shadow-sm focus-within:border-emerald-500 focus-within:ring-1 transition-all flex items-center">
@@ -1049,8 +1038,9 @@
                 </form>
 
                 <!-- Dokumen Section -->
-                <h4 class="font-bold text-gray-800 border-b pb-2 mb-4"><i class="fas fa-folder-open text-emerald-600 mr-2"></i>Pautan Dokumen Rasmi (Sedia Ada)</h4>
-                <div class="flex flex-col sm:flex-row flex-wrap gap-3 mb-6">
+                <h4 class="font-bold text-gray-800 border-b pb-2 mb-4"><i class="fas fa-folder-open text-emerald-600 mr-2"></i>Pautan Dokumen Rasmi</h4>
+                ${ringkasanDokumen(row)}
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
                     ${generateModalDocLink(row['Link Sijil Izin (M)'], 'Sijil Izin', 'fa-file-signature', 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-emerald-200')}
                     ${generateModalDocLink(row['Link Sijil JPN (N)'], 'Sijil JPN', 'fa-id-card', 'bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200')}
                     ${generateModalDocLink(row['Link Resit PDF (O)'], 'Resit PDF', 'fa-file-pdf', 'bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200')}
@@ -1059,21 +1049,21 @@
                 <!-- Update/Upload Documents Form -->
                 <div class="bg-gray-50 p-5 rounded-xl border border-gray-200">
                     <h4 class="font-bold text-gray-800 mb-3"><i class="fas fa-cloud-upload-alt text-blue-600 mr-2"></i>Muat Naik / Kemaskini Dokumen (Opsional)</h4>
-                    <p class="text-xs text-gray-500 mb-4">Pilih fail baharu jika ingin mengemaskini atau menambah sijil. Biarkan kosong bagi dokumen yang tidak perlu ditukar.</p>
+                    <p class="text-xs text-gray-500 mb-4">Format dibenarkan: PDF, JPEG atau PNG (maks 8MB). Pilih fail baharu jika ingin mengemaskini atau menambah sijil. Biarkan kosong bagi dokumen yang tidak perlu ditukar.</p>
                     
                     <form id="updateDocsForm" class="space-y-4">
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Sijil Izin Kubur</label>
-                                <input type="file" id="updIzin" accept="application/pdf" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-gray-300 rounded bg-white">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Sijil Izin Kubur ${lencanaStatus(row['Link Sijil Izin (M)'])}</label>
+                                <input type="file" id="updIzin" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-gray-300 rounded bg-white">
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Sijil Kematian (JPN)</label>
-                                <input type="file" id="updJpn" accept="application/pdf" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-gray-300 rounded bg-white">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Sijil Kematian (JPN) ${lencanaStatus(row['Link Sijil JPN (N)'])}</label>
+                                <input type="file" id="updJpn" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-gray-300 rounded bg-white">
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Resit Jenazah</label>
-                                <input type="file" id="updResit" accept="application/pdf" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer border border-gray-300 rounded bg-white">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Resit Jenazah ${lencanaStatus(row['Link Resit PDF (O)'])}</label>
+                                <input type="file" id="updResit" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" class="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer border border-gray-300 rounded bg-white">
                             </div>
                         </div>
                         <div class="flex justify-end mt-4 pt-4 border-t border-gray-200">
@@ -1097,15 +1087,96 @@
             document.body.style.overflow = 'auto'; 
         }
 
+        // Pautan sah = bermula http(s). Nilai seperti "Tiada Fail" / "-" / kosong = TIADA.
+        function adaLink(url) {
+            return /^https?:\/\//i.test(String(url || '').trim());
+        }
+        function lencanaStatus(url) {
+            return adaLink(url)
+                ? '<span class="ml-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 rounded px-1.5 py-0.5">SEDIA ADA</span>'
+                : '<span class="ml-1 text-[10px] font-bold text-red-700 bg-red-100 border border-red-200 rounded px-1.5 py-0.5">BELUM ADA</span>';
+        }
+        function ringkasanDokumen(row) {
+            const senarai = [
+                ['Sijil Izin', row['Link Sijil Izin (M)']],
+                ['Sijil JPN', row['Link Sijil JPN (N)']],
+                ['Resit PDF', row['Link Resit PDF (O)']]
+            ];
+            const bil = senarai.filter(x => adaLink(x[1])).length;
+            const item = senarai.map(x => adaLink(x[1])
+                ? `<span class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700"><i class="fas fa-check-circle"></i> ${x[0]}</span>`
+                : `<span class="inline-flex items-center gap-1 text-xs font-semibold text-red-600"><i class="fas fa-times-circle"></i> ${x[0]}</span>`).join('<span class="text-gray-300">|</span>');
+            const warna = bil === 3 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200';
+            return `<div class="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 mb-3 rounded-lg border ${warna}">
+                        <span class="text-xs font-bold text-gray-700">${bil}/3 dokumen lengkap:</span> ${item}
+                    </div>`;
+        }
+
         function generateModalDocLink(url, title, iconClass, colorClasses) {
-            if (!url || url.trim() === '') {
-                return `<span class="flex items-center justify-center sm:justify-start gap-2 px-4 py-3 rounded-lg bg-gray-50 text-gray-400 cursor-not-allowed border border-gray-200 font-medium text-sm flex-1 sm:flex-none" title="Tiada ${title}">
-                            <i class="fas ${iconClass}"></i> ${title} <span class="text-xs font-normal">(Tiada)</span>
-                        </span>`;
+            if (!adaLink(url)) {
+                return `<div class="flex items-center justify-center sm:justify-start gap-2 px-4 py-3 rounded-lg bg-red-50 text-red-600 border-2 border-dashed border-red-300 font-semibold text-sm" title="${title} belum dimuat naik">
+                            <i class="fas fa-times-circle"></i> ${title}: <span>TIADA</span>
+                        </div>`;
             }
-            return `<a href="${url}" target="_blank" class="flex items-center justify-center sm:justify-start gap-2 px-4 py-3 rounded-lg shadow-sm transition-all duration-200 border font-semibold text-sm flex-1 sm:flex-none hover:-translate-y-0.5 ${colorClasses}" title="Buka ${title}">
-                        <i class="fas ${iconClass}"></i> Buka ${title}
+            const safeUrl = String(url).trim().replace(/"/g, '&quot;');
+            return `<a href="${safeUrl}" target="_blank" rel="noopener" class="flex items-center justify-center sm:justify-start gap-2 px-4 py-3 rounded-lg shadow-sm transition-all duration-200 border font-semibold text-sm hover:-translate-y-0.5 ${colorClasses}" title="Buka ${title}">
+                        <i class="fas fa-check-circle text-emerald-600"></i> <i class="fas ${iconClass}"></i> Buka ${title}
                     </a>`;
+        }
+
+        // ---------- TARIKH: format d.m.yyyy ----------
+        function formatTarikh(raw) {
+            const s = String(raw || '').trim();
+            if (!s) return '';
+            let m, d, mo, y;
+            if ((m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/))) { y = +m[1]; mo = +m[2]; d = +m[3]; }
+            else if ((m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/))) { d = +m[1]; mo = +m[2]; y = +m[3]; }
+            else return s;
+            if (mo < 1 || mo > 12 || d < 1 || d > 31) return s;
+            return d + '.' + mo + '.' + y;
+        }
+
+        // ---------- FAIL: PDF / JPEG / PNG ----------
+        const FAIL_MAKS_MB = 8;
+        function bacaSebagaiDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(r.result);
+                r.onerror = () => reject(new Error('Gagal membaca fail'));
+                r.readAsDataURL(file);
+            });
+        }
+        async function mampatGambar(file) {
+            const url = await bacaSebagaiDataURL(file);
+            const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Gambar tidak sah')); i.src = url; });
+            const skala = Math.min(1, 2000 / Math.max(img.width, img.height));
+            const c = document.createElement('canvas');
+            c.width = Math.round(img.width * skala); c.height = Math.round(img.height * skala);
+            const g = c.getContext('2d');
+            g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+            g.drawImage(img, 0, 0, c.width, c.height);
+            return c.toDataURL('image/jpeg', 0.85);
+        }
+        async function sediakanFail(file) {
+            if (!file) return null;
+            const nama = file.name || '';
+            let mime = file.type;
+            if (!mime) {
+                if (/\.pdf$/i.test(nama)) mime = 'application/pdf';
+                else if (/\.jpe?g$/i.test(nama)) mime = 'image/jpeg';
+                else if (/\.png$/i.test(nama)) mime = 'image/png';
+            }
+            if (['application/pdf', 'image/jpeg', 'image/png'].indexOf(mime) === -1)
+                throw new Error('Format fail "' + nama + '" tidak disokong. Guna PDF, JPEG atau PNG sahaja.');
+            let dataUrl;
+            if (mime !== 'application/pdf' && file.size > 1.5 * 1024 * 1024) {
+                dataUrl = await mampatGambar(file); mime = 'image/jpeg';
+            } else {
+                if (file.size > FAIL_MAKS_MB * 1024 * 1024)
+                    throw new Error('Fail "' + nama + '" terlalu besar (had ' + FAIL_MAKS_MB + 'MB).');
+                dataUrl = await bacaSebagaiDataURL(file);
+            }
+            return { base64: dataUrl.split(',')[1], mime: mime, nama: nama };
         }
 
         // --- UPDATE DOCUMENTS FUNCTIONALITY ---
@@ -1152,7 +1223,7 @@
                 namaWaris: document.getElementById('editNamaWaris').value,
                 telWaris: document.getElementById('editTelWaris').value,
                 alamat: document.getElementById('editAlamat').value,  // NEW ALAMAT
-                tarikhKematian: document.getElementById('editTarikh').value,
+                tarikhKematian: formatTarikh(document.getElementById('editTarikh').value),
                 lotKubur: document.getElementById('editLotKubur').value,
                 total: document.getElementById('editJumlah').value,
                 pegawai: document.getElementById('editPegawai').value,
@@ -1166,9 +1237,12 @@
 
             try {
                 // Convert selected files to Base64
-                if(izinFile) payload.izinBase64 = await fileToBase64(izinFile);
-                if(jpnFile) payload.jpnBase64 = await fileToBase64(jpnFile);
-                if(resitFile) payload.resitBase64 = await fileToBase64(resitFile);
+                const fIzin = await sediakanFail(izinFile);
+                const fJpn = await sediakanFail(jpnFile);
+                const fResit = await sediakanFail(resitFile);
+                if(fIzin)  { payload.izinBase64  = fIzin.base64;  payload.izinMime  = fIzin.mime; }
+                if(fJpn)   { payload.jpnBase64   = fJpn.base64;   payload.jpnMime   = fJpn.mime; }
+                if(fResit) { payload.resitBase64 = fResit.base64; payload.resitMime = fResit.mime; }
 
                 // Hantar ke Apps Script (token disertakan oleh panggilAPI)
                 const result = await panggilAPI(payload);
@@ -1196,9 +1270,10 @@
         // Utility to handle date string parsing correctly (DD/MM/YYYY or YYYY-MM-DD)
         function parseCustomDate(dateStr) {
             if (!dateStr) return null;
-            let parts = dateStr.split(/[-/]/);
+            const first = String(dateStr).trim().split(/\s+/)[0];
+            const parts = first.split(/[-/.]/);
             if (parts.length >= 3) {
-                if (parts[2].length === 4) { // format DD/MM/YYYY
+                if (parts[2].length === 4) { // format D.M.YYYY / DD/MM/YYYY
                     return new Date(parts[2], parseInt(parts[1]) - 1, parts[0]);
                 }
                 if (parts[0].length === 4) { // format YYYY-MM-DD
